@@ -56,6 +56,7 @@ class _TapToRecordButtonState extends State<TapToRecordButton> {
   @override
   void dispose() {
     _timer?.cancel();
+    _timer = null;
     super.dispose();
   }
 

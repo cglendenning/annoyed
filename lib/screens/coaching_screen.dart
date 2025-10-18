@@ -108,14 +108,25 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
         } else {
           // Check annoyances created after the most recent coaching
           final mostRecentCoaching = coachings.first;
-          final coachingTimestamp = mostRecentCoaching['timestamp'] as DateTime?;
+          // Handle both DateTime and Timestamp types
+          DateTime? coachingTimestamp;
+          final tsField = mostRecentCoaching['ts'] ?? mostRecentCoaching['timestamp'];
+          
+          if (tsField != null) {
+            if (tsField is DateTime) {
+              coachingTimestamp = tsField;
+            } else if (tsField.toString().contains('Timestamp')) {
+              // It's a Firestore Timestamp
+              coachingTimestamp = tsField.toDate();
+            }
+          }
           
           print('[CoachingScreen] DEBUG - Most recent coaching timestamp: $coachingTimestamp');
           
           if (coachingTimestamp != null) {
             // Count annoyances with timestamp after the most recent coaching
             final newAnnoyances = annoyanceProvider.annoyances
-                .where((annoyance) => annoyance.timestamp.isAfter(coachingTimestamp))
+                .where((annoyance) => annoyance.timestamp.isAfter(coachingTimestamp!))
                 .toList();
             
             print('[CoachingScreen] DEBUG - Annoyances after coaching timestamp:');
@@ -169,14 +180,8 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
           _isLoading = false;
         });
         
-        // Save the recommendation immediately (without feedback) so it's stored permanently
-        await FirebaseService.saveCoachingResonance(
-          uid: uid,
-          recommendation: result['recommendation'],
-          type: result['type'],
-          resonance: '', // Empty means no feedback yet
-          explanation: result['explanation'] ?? '',
-        );
+        // Note: Coaching will be saved to Firestore when user provides feedback (hell_yes/meh)
+        // or when they view it from history. We don't save immediately to avoid duplicates.
         
         await AnalyticsService.logEvent('coaching_viewed');
       }
@@ -230,21 +235,23 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   Future<void> _handleResonance(String resonance) async {
     if (_coaching == null || _hasGivenFeedback) return;
 
-    setState(() {
-      _hasGivenFeedback = true;
-    });
-
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final uid = authProvider.userId;
 
     if (uid != null) {
       try {
+        // Save coaching with user's resonance feedback
         await FirebaseService.saveCoachingResonance(
           uid: uid,
           recommendation: _coaching!['recommendation'],
           type: _coaching!['type'],
           resonance: resonance,
+          explanation: _coaching!['explanation'] ?? '',
         );
+
+        setState(() {
+          _hasGivenFeedback = true;
+        });
 
         await AnalyticsService.logEvent('coaching_resonance_$resonance');
 
@@ -270,9 +277,6 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
         }
       } catch (e) {
         if (mounted) {
-          setState(() {
-            _hasGivenFeedback = false;
-          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error saving feedback: ${e.toString()}'),
@@ -628,10 +632,6 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                   ),
                 ),
               ],
-            ),
-          ] else ...[
-            const Center(
-              child: CircularProgressIndicator(),
             ),
           ],
         ],

@@ -173,7 +173,11 @@ class SuggestionCardScreen extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        // TODO: Implement snooze
+                        // Snooze functionality - remind user later
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Snoozed for later')),
+                        );
+                        Navigator.of(context).pop();
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

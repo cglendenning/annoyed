@@ -181,31 +181,58 @@ class AuthProvider with ChangeNotifier {
     try {
       final uid = _user!.uid;
       
-      // Delete user data from Firestore
-      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-      await FirebaseFirestore.instance.collection('annoyances')
-          .where('uid', isEqualTo: uid)
-          .get()
-          .then((snapshot) {
-        for (var doc in snapshot.docs) {
-          doc.reference.delete();
-        }
-      });
-      await FirebaseFirestore.instance.collection('coaching')
-          .where('uid', isEqualTo: uid)
-          .get()
-          .then((snapshot) {
-        for (var doc in snapshot.docs) {
-          doc.reference.delete();
-        }
-      });
+      // Delete all user data from Firestore collections in parallel
+      await Future.wait([
+        // Delete user document
+        FirebaseFirestore.instance.collection('users').doc(uid).delete(),
+        
+        // Delete annoyances
+        FirebaseFirestore.instance.collection('annoyances')
+            .where('uid', isEqualTo: uid)
+            .get()
+            .then((snapshot) => Future.wait(
+              snapshot.docs.map((doc) => doc.reference.delete())
+            )),
+        
+        // Delete coaching records
+        FirebaseFirestore.instance.collection('coaching')
+            .where('uid', isEqualTo: uid)
+            .get()
+            .then((snapshot) => Future.wait(
+              snapshot.docs.map((doc) => doc.reference.delete())
+            )),
+        
+        // Delete suggestions
+        FirebaseFirestore.instance.collection('suggestions')
+            .where('uid', isEqualTo: uid)
+            .get()
+            .then((snapshot) => Future.wait(
+              snapshot.docs.map((doc) => doc.reference.delete())
+            )),
+        
+        // Delete events
+        FirebaseFirestore.instance.collection('events')
+            .where('uid', isEqualTo: uid)
+            .get()
+            .then((snapshot) => Future.wait(
+              snapshot.docs.map((doc) => doc.reference.delete())
+            )),
+        
+        // Delete LLM cost records (GDPR compliance)
+        FirebaseFirestore.instance.collection('llm_cost')
+            .where('uid', isEqualTo: uid)
+            .get()
+            .then((snapshot) => Future.wait(
+              snapshot.docs.map((doc) => doc.reference.delete())
+            )),
+      ]);
       
       // Delete Firebase Auth account
       await _user!.delete();
       _user = null;
       notifyListeners();
     } catch (e) {
-      print('Error deleting account: $e');
+      debugPrint('Error deleting account: $e');
       rethrow;
     }
   }

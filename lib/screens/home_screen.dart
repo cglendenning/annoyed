@@ -9,6 +9,7 @@ import '../widgets/tap_to_record_button.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/animated_gradient_container.dart';
 import '../utils/app_colors.dart';
+import '../utils/constants.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
@@ -30,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isRecording = false;
   bool _isSaving = false;
   String _transcript = '';
+  bool _hasShownPatternReport = false;
 
   @override
   void initState() {
@@ -46,17 +48,19 @@ class _HomeScreenState extends State<HomeScreen> {
     if (uid != null) {
       await annoyanceProvider.loadAnnoyances(uid);
 
-      // Check if we should show pattern report
+      // Check if we should show pattern report (only once per session)
       final patternReport = annoyanceProvider.getPatternReport();
-      if (patternReport != null && mounted) {
+      if (patternReport != null && !_hasShownPatternReport && mounted) {
+        _hasShownPatternReport = true;
         // Show pattern report after 3rd entry
-        // Only show once per session (you might want to track this with a flag)
         Future.microtask(() {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const PatternReportScreen(),
-            ),
-          );
+          if (mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const PatternReportScreen(),
+              ),
+            );
+          }
         });
       }
     }
@@ -162,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         // Wait a bit then show saved snackbar
-        await Future.delayed(const Duration(milliseconds: 800));
+        await Future.delayed(const Duration(milliseconds: AppConstants.snackbarShortDelayMs));
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -176,8 +180,8 @@ class _HomeScreenState extends State<HomeScreen> {
           final annoyanceCount = annoyanceProvider.annoyances.length;
           final isAnonymous = authProvider.user?.isAnonymous ?? false;
           
-          // Check if this is the 5th annoyance and user is anonymous (show auth gate)
-          if (annoyanceCount == 5 && isAnonymous) {
+          // Check if this is the configured annoyance count and user is anonymous (show auth gate)
+          if (annoyanceCount == AppConstants.annoyancesForAuthGate && isAnonymous) {
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
               Navigator.of(context).push(
@@ -230,10 +234,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return true;
     }
     
-    // After that, generate coaching every 5 annoyances
+    // After that, generate coaching every N annoyances
     // Coaching #1 at annoyance 1, #2 at annoyance 6, #3 at annoyance 11, etc.
-    // Formula: next coaching should be at annoyance count = 1 + (coachingCount * 5)
-    final nextCoachingAt = 1 + (coachingCount * 5);
+    // Formula: next coaching should be at annoyance count = 1 + (coachingCount * N)
+    final nextCoachingAt = 1 + (coachingCount * AppConstants.annoyancesPerCoaching);
     
     return currentAnnoyanceCount == nextCoachingAt;
   }
@@ -276,12 +280,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 onStartRecording: _startRecording,
                 onStopRecording: _stopRecording,
                 onCancelRecording: _cancelRecording,
-                maxDurationSeconds: 30,
+                maxDurationSeconds: AppConstants.maxRecordingSeconds,
               ),
 
               const SizedBox(height: 12),
 
-              // Type instead option
+              // Type instead option (hide during recording/saving)
               if (!_isRecording && !_isSaving)
                 Center(
                   child: TextButton(

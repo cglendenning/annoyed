@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/app_colors.dart';
@@ -147,27 +148,28 @@ class AboutScreen extends StatelessWidget {
             
             const SizedBox(height: 12),
             
-            // Green Pyramid App - iOS
-            _buildLinkButton(
-              context: context,
-              icon: Icons.apple,
-              title: 'Green Pyramid App',
-              subtitle: 'Available on the App Store',
-              color: AppColors.primaryTeal,
-              onTap: () => _launchURL('https://apps.apple.com/us/app/green-pyramid-your-best-life/id6450578276'),
-            ),
+            // Green Pyramid App - Platform-specific
+            if (Platform.isIOS)
+              _buildLinkButton(
+                context: context,
+                icon: Icons.apple,
+                title: 'Green Pyramid App',
+                subtitle: 'Available on the App Store',
+                color: AppColors.primaryTeal,
+                onTap: () => _launchURL('https://apps.apple.com/us/app/green-pyramid-your-best-life/id6450578276'),
+              ),
             
-            const SizedBox(height: 12),
-            
-            // Green Pyramid App - Android
-            _buildLinkButton(
-              context: context,
-              icon: Icons.android,
-              title: 'Green Pyramid App',
-              subtitle: 'Available on Google Play',
-              color: const Color(0xFF3DDC84),
-              onTap: () => _launchURL('https://play.google.com/store/apps/details?id=com.cglendenning.life_ops&hl=en_US'),
-            ),
+            if (Platform.isAndroid) ...[
+              const SizedBox(height: 12),
+              _buildLinkButton(
+                context: context,
+                icon: Icons.android,
+                title: 'Green Pyramid App',
+                subtitle: 'Available on Google Play',
+                color: const Color(0xFF3DDC84),
+                onTap: () => _launchURL('https://play.google.com/store/apps/details?id=com.cglendenning.life_ops&hl=en_US'),
+              ),
+            ],
             
             const SizedBox(height: 32),
             

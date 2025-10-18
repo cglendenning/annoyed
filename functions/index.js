@@ -369,12 +369,17 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
   let tokensOut = 0;
 
   try {
-    // Get all user's annoyances for pattern analysis
+    // Get user's annoyances from last 7 days (max 15)
+    const sevenDaysAgo = admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() - (7 * 24 * 60 * 60 * 1000))
+    );
+    
     const annoyancesSnapshot = await db
       .collection('annoyances')
       .where('uid', '==', uid)
+      .where('ts', '>=', sevenDaysAgo)
       .orderBy('ts', 'desc')
-      .limit(30)
+      .limit(15)
       .get();
 
     if (annoyancesSnapshot.empty) {
@@ -430,7 +435,7 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
     const topCategory = Object.keys(categoryCount).sort((a, b) => categoryCount[b] - categoryCount[a])[0];
     const topCategoryPercent = Math.round((categoryCount[topCategory] / totalCount) * 100);
     
-    // Include ALL annoyances in the prompt, not just 10
+    // Include annoyances from last 7 days (max 15) in the prompt
     const allAnnoyancesList = annoyances.map(a => 
       `${a.category}: "${a.trigger}"`
     ).join('\n');

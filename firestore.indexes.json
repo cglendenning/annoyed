@@ -29,6 +29,20 @@
       ]
     },
     {
+      "collectionGroup": "annoyances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ts",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "coaching",
       "queryScope": "COLLECTION",
       "fields": [

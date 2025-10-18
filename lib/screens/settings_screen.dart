@@ -32,6 +32,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _deleteAllData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Check if user is signed in
+    if (!authProvider.isAuthenticated) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be signed in to delete data'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -64,8 +79,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirm == true) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
       try {
         // This deletes everything - account, data, etc.
         await authProvider.deleteAccount();
@@ -208,6 +221,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   );
                 }
+              }
+            },
+          ),
+
+          const Divider(height: 32),
+
+          // Account
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'Account',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, _) {
+              if (authProvider.isAuthenticated && authProvider.userEmail != null) {
+                return Column(
+                  children: [
+                    ListTile(
+                      title: const Text('Email'),
+                      subtitle: Text(authProvider.userEmail!),
+                      leading: const Icon(Icons.email),
+                    ),
+                    ListTile(
+                      title: const Text('Sign Out'),
+                      leading: const Icon(Icons.logout, color: Colors.orange),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Sign Out'),
+                            content: const Text('Are you sure you want to sign out?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: const Text('Sign Out'),
+                              ),
+                            ],
+                          ),
+                        );
+                        
+                        if (confirm == true && mounted) {
+                          await authProvider.signOut();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Signed out successfully'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                );
+              } else if (authProvider.isAuthenticated) {
+                return ListTile(
+                  title: const Text('Anonymous User'),
+                  subtitle: const Text('Sign up to save your data'),
+                  leading: const Icon(Icons.person_outline),
+                );
+              } else {
+                return const SizedBox.shrink();
               }
             },
           ),

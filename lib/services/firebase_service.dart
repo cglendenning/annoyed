@@ -293,17 +293,23 @@ class FirebaseService {
   // Get all coachings for a user (newest first)
   static Future<List<Map<String, dynamic>>> getAllCoachings({
     required String uid,
+    int limit = 100, // Default limit to prevent excessive data transfer
   }) async {
     try {
       final snapshot = await _firestore
           .collection('coaching')
           .where('uid', isEqualTo: uid)
           .orderBy('ts', descending: true)
+          .limit(limit)
           .get();
       
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
+        // Convert Firestore Timestamp to DateTime for easier handling in UI
+        if (data['ts'] != null) {
+          data['timestamp'] = (data['ts'] as Timestamp).toDate();
+        }
         return data;
       }).toList();
     } catch (e) {

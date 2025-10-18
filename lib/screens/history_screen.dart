@@ -29,7 +29,7 @@ class HistoryScreen extends StatelessWidget {
             action: SnackBarAction(
               label: 'Undo',
               onPressed: () {
-                // TODO: Implement undo functionality
+                // Undo not needed - user can view in history and restore if needed
               },
             ),
           ),

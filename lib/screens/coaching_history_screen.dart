@@ -79,6 +79,45 @@ class _CoachingHistoryScreenState extends State<CoachingHistoryScreen> {
     return type == 'mindset_shift' ? 'Mindset Shift' : 'Behavior Change';
   }
 
+  Future<void> _toggleHeart(Map<String, dynamic> coaching) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final uid = authProvider.userId;
+    
+    if (uid == null) return;
+
+    final currentResonance = coaching['resonance'];
+    final newResonance = currentResonance == 'hell_yes' ? '' : 'hell_yes';
+
+    try {
+      // Optimistically update UI
+      setState(() {
+        coaching['resonance'] = newResonance;
+      });
+
+      // Save to Firebase
+      await FirebaseService.saveCoachingResonance(
+        uid: uid,
+        recommendation: coaching['recommendation'],
+        type: coaching['type'],
+        resonance: newResonance,
+        explanation: coaching['explanation'] ?? '',
+      );
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        coaching['resonance'] = currentResonance;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -197,12 +236,16 @@ class _CoachingHistoryScreenState extends State<CoachingHistoryScreen> {
                       ],
                     ),
                   ),
-                  if (resonance == 'hell_yes')
-                    const Icon(
-                      Icons.favorite,
-                      color: Colors.red,
-                      size: 20,
+                  IconButton(
+                    icon: Icon(
+                      resonance == 'hell_yes' ? Icons.favorite : Icons.favorite_border,
+                      color: resonance == 'hell_yes' ? Colors.red : Colors.grey.shade400,
+                      size: 24,
                     ),
+                    onPressed: () => _toggleHeart(coaching),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ],
               ),
               

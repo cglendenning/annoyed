@@ -26,7 +26,7 @@ class SpeechService {
     if (!_isInitialized) {
       final success = await initialize();
       if (!success) {
-        throw Exception('Speech recognition not available');
+        throw Exception('Speech recognition not available. Please grant microphone permission in Settings.');
       }
     }
 

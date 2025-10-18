@@ -37,7 +37,8 @@ service cloud.firestore {
       // Users can read their own cost records
       allow read: if request.auth != null && 
                      request.auth.uid == resource.data.uid;
-      allow create: if request.auth != null;
+      // Block client-side creation - only Functions can create cost records
+      allow create: if false;
     }
   }
 }
