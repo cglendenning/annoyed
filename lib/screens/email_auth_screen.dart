@@ -36,11 +36,31 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
   bool _obscureConfirmPassword = true;
   bool _marketingOptIn = false;
   bool _agreedToTerms = false;
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   
   @override
   void initState() {
     super.initState();
     _isSignUp = widget.initialMode == AuthMode.signUp;
+    
+    // Add listeners to update password strength indicator in real-time
+    _passwordController.addListener(() {
+      if (_isSignUp) {
+        setState(() {});
+        // Also validate confirm password if user has started typing
+        if (_confirmPasswordController.text.isNotEmpty) {
+          _formKey.currentState?.validate();
+        }
+      }
+    });
+    _confirmPasswordController.addListener(() {
+      if (_isSignUp && _confirmPasswordController.text.isNotEmpty) {
+        // Enable auto-validation once user starts typing in confirm password
+        setState(() {
+          _autovalidateMode = AutovalidateMode.always;
+        });
+      }
+    });
   }
   
   @override
@@ -66,6 +86,10 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
   }
   
   Future<void> _submit() async {
+    setState(() {
+      _autovalidateMode = AutovalidateMode.onUserInteraction;
+    });
+    
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -110,7 +134,10 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         );
       }
       
-      // Navigation handled by AuthGate
+      // Navigation handled by AuthGate - pop this screen on success
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (mounted) {
         String errorMessage = 'Authentication failed';
@@ -185,6 +212,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           padding: const EdgeInsets.all(32.0),
           child: Form(
             key: _formKey,
+            autovalidateMode: _autovalidateMode,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -270,7 +298,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                       ),
                       onPressed: () {
                         setState(() {
-                          _obscurePassword = !_obscurePassword,
+                          _obscurePassword = !_obscurePassword;
                         });
                       },
                     ),
@@ -547,6 +575,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                               _isSignUp = !_isSignUp;
                               _agreedToTerms = false;
                               _marketingOptIn = false;
+                              _autovalidateMode = AutovalidateMode.disabled;
                             });
                           },
                     child: Text(

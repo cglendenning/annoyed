@@ -281,3 +281,4 @@ class SuggestionCardScreen extends StatelessWidget {
 
 
 
+

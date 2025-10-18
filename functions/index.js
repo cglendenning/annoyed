@@ -12,6 +12,77 @@ const openai = new OpenAI({
 
 const db = admin.firestore();
 
+// Cost limits (in USD)
+const FREE_USER_LIMIT = 0.10;  // Show paywall at $0.10
+const SUBSCRIBED_USER_LIMIT = 0.50;  // Hard stop at $0.50 per billing period
+
+/**
+ * Get user's total OpenAI costs for current billing period (monthly)
+ */
+async function getUserCosts(uid) {
+  // Get start of current month
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  const costsSnapshot = await db
+    .collection('llm_cost')
+    .where('uid', '==', uid)
+    .where('ts', '>=', startOfMonth)
+    .get();
+  
+  let totalCost = 0;
+  costsSnapshot.docs.forEach(doc => {
+    totalCost += doc.data().cost_usd || 0;
+  });
+  
+  return totalCost;
+}
+
+/**
+ * Check if user is subscribed (has active subscription)
+ */
+async function isUserSubscribed(uid) {
+  try {
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (!userDoc.exists) return false;
+    
+    const userData = userDoc.data();
+    return userData.isPro === true || userData.subscribed === true;
+  } catch (e) {
+    console.error('Error checking subscription:', e);
+    return false;
+  }
+}
+
+/**
+ * Check if user has exceeded their cost limit
+ * Throws HttpsError if limit exceeded
+ */
+async function checkCostLimit(uid, functionName) {
+  const totalCost = await getUserCosts(uid);
+  const isSubscribed = await isUserSubscribed(uid);
+  
+  console.log(`[${functionName}] User ${uid}: spent $${totalCost.toFixed(4)} this month, subscribed: ${isSubscribed}`);
+  
+  // Check hard limit for subscribed users
+  if (isSubscribed && totalCost >= SUBSCRIBED_USER_LIMIT) {
+    throw new functions.https.HttpsError(
+      'resource-exhausted',
+      `You've reached your monthly usage limit of $${SUBSCRIBED_USER_LIMIT.toFixed(2)}. Your limit will reset at the start of next month.`
+    );
+  }
+  
+  // Check limit for free users
+  if (!isSubscribed && totalCost >= FREE_USER_LIMIT) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      `You've reached the free usage limit. Subscribe to continue using AI features.`
+    );
+  }
+  
+  return { totalCost, isSubscribed };
+}
+
 /**
  * Classify an annoyance transcript
  * Input: { text: string }
@@ -23,6 +94,14 @@ exports.classifyAnnoyance = functions.https.onCall(async (data, context) => {
   if (!text || typeof text !== 'string') {
     throw new functions.https.HttpsError('invalid-argument', 'Text is required');
   }
+
+  // Check authentication
+  if (!context.auth?.uid) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  // Check cost limits before making API call
+  await checkCostLimit(context.auth.uid, 'classifyAnnoyance');
 
   const startTime = Date.now();
   let tokensIn = 0;
@@ -127,6 +206,14 @@ exports.generateSuggestion = functions.https.onCall(async (data, context) => {
   if (!uid || !category || !trigger) {
     throw new functions.https.HttpsError('invalid-argument', 'uid, category, and trigger are required');
   }
+
+  // Check authentication
+  if (!context.auth?.uid) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  // Check cost limits before making API call
+  await checkCostLimit(uid, 'generateSuggestion');
 
   const startTime = Date.now();
   let tokensIn = 0;
@@ -266,6 +353,14 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
   if (!uid) {
     throw new functions.https.HttpsError('invalid-argument', 'uid is required');
   }
+
+  // Check authentication
+  if (!context.auth?.uid) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  // Check cost limits before making API call (this is the most expensive call)
+  await checkCostLimit(uid, 'generateCoaching');
 
   console.log(`[generateCoaching] Called for uid: ${uid} at ${new Date().toISOString()} (client timestamp: ${timestamp})`);
 
@@ -505,5 +600,41 @@ Respond in JSON:
     console.error('Error generating coaching:', error);
     // Re-throw all errors so we can see what's actually failing
     throw error;
+  }
+});
+
+/**
+ * Get user's current cost usage and limits
+ * Input: { uid: string }
+ * Output: { currentCost: number, limit: number, isSubscribed: boolean, canUseAI: boolean }
+ */
+exports.getUserCostStatus = functions.https.onCall(async (data, context) => {
+  const { uid } = data;
+
+  if (!uid) {
+    throw new functions.https.HttpsError('invalid-argument', 'uid is required');
+  }
+
+  // Check authentication
+  if (!context.auth?.uid || context.auth.uid !== uid) {
+    throw new functions.https.HttpsError('permission-denied', 'Unauthorized');
+  }
+
+  try {
+    const currentCost = await getUserCosts(uid);
+    const isSubscribed = await isUserSubscribed(uid);
+    const limit = isSubscribed ? SUBSCRIBED_USER_LIMIT : FREE_USER_LIMIT;
+    const canUseAI = currentCost < limit;
+
+    return {
+      currentCost: parseFloat(currentCost.toFixed(4)),
+      limit,
+      isSubscribed,
+      canUseAI,
+      percentUsed: Math.round((currentCost / limit) * 100),
+    };
+  } catch (error) {
+    console.error('Error getting user cost status:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get cost status');
   }
 });

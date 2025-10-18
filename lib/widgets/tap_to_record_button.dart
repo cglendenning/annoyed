@@ -184,7 +184,7 @@ class _TapToRecordButtonState extends State<TapToRecordButton> {
                 ),
               ],
             ),
-        child: Column(
+            child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Stack(
@@ -227,7 +227,7 @@ class _TapToRecordButtonState extends State<TapToRecordButton> {
                 fontSize: 14,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             if (widget.transcript.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -238,19 +238,13 @@ class _TapToRecordButtonState extends State<TapToRecordButton> {
                     fontSize: 14,
                   ),
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: widget.onCancelRecording,
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
           ],
+        ),
+          ),
         ),
       ),
     );

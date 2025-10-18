@@ -255,56 +255,28 @@ class _IntroPage extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: AnimatedGradientContainer(
-                colors: const [
-                  AppColors.primaryTealLight,
-                  AppColors.primaryTeal,
-                  AppColors.primaryTealDark,
-                ],
-                duration: const Duration(seconds: 3),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    // Sign in anonymously to start using the app
-                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                    try {
-                      await authProvider.signInAnonymously();
-                      // AuthGate will handle navigation
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error: ${e.toString()}'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Get Started',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+          
+          // Sketched arrow indicating swipe right
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Swipe to continue',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              CustomPaint(
+                size: const Size(40, 20),
+                painter: _SketchedArrowPainter(),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
+          
           TextButton(
             onPressed: () {
               Navigator.of(context).push(

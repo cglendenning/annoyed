@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark Aqua background behind the foreground for adaptive icons -->
     <color name="ic_launcher_background">#0F766E</color>
 </resources>

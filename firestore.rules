@@ -33,8 +33,13 @@ service cloud.firestore {
     }
     
     match /llm_cost/{costId} {
+      // Only Firebase Functions can create cost records
+      // Users can read their own cost records
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.uid;
       allow create: if request.auth != null;
     }
   }
 }
+
 

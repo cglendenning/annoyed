@@ -255,6 +255,22 @@ class FirebaseService {
     }
   }
 
+  // Get user's cost usage status
+  static Future<Map<String, dynamic>> getUserCostStatus({
+    required String uid,
+  }) async {
+    try {
+      final callable = _functions.httpsCallable('getUserCostStatus');
+      final result = await callable.call({
+        'uid': uid,
+      });
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      print('Error calling getUserCostStatus: $e');
+      rethrow;
+    }
+  }
+
   // Coaching resonance
   static Future<String> saveCoachingResonance({
     required String uid,

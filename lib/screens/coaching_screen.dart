@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
+import '../services/paywall_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/animated_gradient_container.dart';
+import 'paywall_screen.dart';
 
 class CoachingScreen extends StatefulWidget {
   const CoachingScreen({super.key});
@@ -77,6 +79,33 @@ class _CoachingScreenState extends State<CoachingScreen> {
           errorMsg = match.group(1) ?? errorMsg;
         }
       }
+      
+      // Check if it's a cost limit error
+      if (errorMsg.contains('usage limit') || 
+          errorMsg.contains('permission-denied') || 
+          errorMsg.contains('resource-exhausted')) {
+        // Show paywall for cost limit errors
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          // Get detailed usage message
+          final usageMsg = await PaywallService.getUsageMessage(uid);
+          
+          if (mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => PaywallScreen(
+                  message: usageMsg.isEmpty ? errorMsg : usageMsg,
+                ),
+              ),
+            );
+          }
+        }
+        return;
+      }
+      
       if (mounted) {
         setState(() {
           _error = errorMsg;

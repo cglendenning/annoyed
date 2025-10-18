@@ -84,11 +84,9 @@ match /users/{userId} {
 3. Optional: Enable email verification (recommended)
 
 ### 3. Green Pyramid App Links
-Currently using placeholder URLs in `about_screen.dart`:
-- **iOS**: `https://apps.apple.com/app/green-pyramid`
-- **Android**: `https://play.google.com/store/apps/details?id=com.greenpyramid`
-
-**Please update these with your actual app URLs!**
+Updated with actual app URLs in `about_screen.dart`:
+- **iOS**: `https://apps.apple.com/us/app/green-pyramid-your-best-life/id6450578276`
+- **Android**: `https://play.google.com/store/apps/details?id=com.cglendenning.life_ops&hl=en_US`
 
 ### 4. Marketing Email System
 You'll need to set up a system to:

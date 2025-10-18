@@ -123,6 +123,18 @@ class AboutScreen extends StatelessWidget {
             
             const SizedBox(height: 16),
             
+            // Still Waters Retreats
+            _buildLinkButton(
+              context: context,
+              icon: Icons.spa_outlined,
+              title: 'Still Waters Retreats',
+              subtitle: 'Mindful retreats & coaching',
+              color: const Color(0xFF4A90A4),
+              onTap: () => _launchURL('https://www.stillwatersretreats.com'),
+            ),
+            
+            const SizedBox(height: 12),
+            
             // YouTube button
             _buildLinkButton(
               context: context,
@@ -142,7 +154,7 @@ class AboutScreen extends StatelessWidget {
               title: 'Green Pyramid App',
               subtitle: 'Available on the App Store',
               color: AppColors.primaryTeal,
-              onTap: () => _launchURL('https://apps.apple.com/app/green-pyramid'),
+              onTap: () => _launchURL('https://apps.apple.com/us/app/green-pyramid-your-best-life/id6450578276'),
             ),
             
             const SizedBox(height: 12),
@@ -154,7 +166,7 @@ class AboutScreen extends StatelessWidget {
               title: 'Green Pyramid App',
               subtitle: 'Available on Google Play',
               color: const Color(0xFF3DDC84),
-              onTap: () => _launchURL('https://play.google.com/store/apps/details?id=com.greenpyramid'),
+              onTap: () => _launchURL('https://play.google.com/store/apps/details?id=com.cglendenning.life_ops&hl=en_US'),
             ),
             
             const SizedBox(height: 32),
