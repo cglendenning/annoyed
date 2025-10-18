@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../services/firebase_service.dart';
 
 class PaywallService {

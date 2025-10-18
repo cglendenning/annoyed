@@ -6,6 +6,7 @@ import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
 import '../services/paywall_service.dart';
 import '../utils/app_colors.dart';
+import '../utils/constants.dart';
 import '../widgets/animated_gradient_container.dart';
 import 'paywall_screen.dart';
 import 'coaching_history_screen.dart';

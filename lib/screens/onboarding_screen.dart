@@ -287,7 +287,6 @@ class _IntroPage extends StatelessWidget {
           
           TextButton(
             onPressed: () {
-              if (!mounted) return;
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const EmailAuthScreen(
