@@ -55,7 +55,7 @@ class SuggestionCardScreen extends StatelessWidget {
                           ? Icons.psychology_outlined
                           : Icons.track_changes,
                       size: 48,
-                      color: const Color(0xFF2D9CDB),
+                      color: const Color(0xFF0F766E),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -73,7 +73,7 @@ class SuggestionCardScreen extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2D9CDB).withOpacity(0.1),
+                        color: const Color(0xFF0F766E).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
@@ -81,7 +81,7 @@ class SuggestionCardScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2D9CDB),
+                          color: Color(0xFF0F766E),
                         ),
                       ),
                     ),
@@ -141,7 +141,7 @@ class SuggestionCardScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: suggestion.resonance == 'hell_yes'
                             ? Colors.green
-                            : const Color(0xFF2D9CDB),
+                            : const Color(0xFF0F766E),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -210,7 +210,7 @@ class SuggestionCardScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: suggestion.completedTimestamp != null
                             ? Colors.green
-                            : const Color(0xFF2D9CDB),
+                            : const Color(0xFF0F766E),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -234,14 +234,14 @@ class SuggestionCardScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2D9CDB).withOpacity(0.1),
+                  color: const Color(0xFF0F766E).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.info_outline,
-                      color: Color(0xFF2D9CDB),
+                      color: Color(0xFF0F766E),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

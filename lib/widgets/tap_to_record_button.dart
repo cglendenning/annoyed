@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../utils/app_colors.dart';
+import '../widgets/animated_gradient_container.dart';
 
 class TapToRecordButton extends StatefulWidget {
   final bool isRecording;
@@ -101,47 +103,57 @@ class _TapToRecordButtonState extends State<TapToRecordButton> {
   Widget _buildIdleState() {
     return GestureDetector(
       onTap: _handleTap,
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2D9CDB),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF2D9CDB).withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedGradientContainer(
+          colors: const [
+            AppColors.primaryTealLight,
+            AppColors.primaryTeal,
+            AppColors.primaryTealDark,
           ],
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.mic,
-                size: 48,
-                color: Colors.white,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'TAP TO RECORD (${widget.maxDurationSeconds}s)',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
+          duration: const Duration(seconds: 3),
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x4D0F766E), // 30% opacity
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
+              ],
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.mic,
+                    size: 48,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'TAP TO RECORD (${widget.maxDurationSeconds}s)',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Tap again to stop',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'Tap again to stop',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -151,19 +163,27 @@ class _TapToRecordButtonState extends State<TapToRecordButton> {
   Widget _buildRecordingState(BuildContext context) {
     return GestureDetector(
       onTap: _handleTap,
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.red.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedGradientContainer(
+          colors: const [
+            AppColors.accentCoralLight,
+            AppColors.accentCoral,
+            Color(0xFF991B1B), // deeper red
           ],
-        ),
+          duration: const Duration(seconds: 2),
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x4DEF4444), // coral at 30% opacity
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

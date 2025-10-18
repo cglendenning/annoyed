@@ -44,13 +44,13 @@ class PatternReportScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2D9CDB).withOpacity(0.1),
+                  color: const Color(0xFF0F766E).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.auto_awesome,
                   size: 64,
-                  color: Color(0xFF2D9CDB),
+                  color: Color(0xFF0F766E),
                 ),
               ),
             ),
@@ -89,7 +89,7 @@ class PatternReportScreen extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D9CDB),
+                      color: Color(0xFF0F766E),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -147,7 +147,7 @@ class PatternReportScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF2D9CDB).withOpacity(0.1),
+                color: const Color(0xFF0F766E).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -177,7 +177,7 @@ class PatternReportScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2D9CDB),
+                backgroundColor: const Color(0xFF0F766E),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(

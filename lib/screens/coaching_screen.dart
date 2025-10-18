@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
+import '../utils/app_colors.dart';
+import '../widgets/animated_gradient_container.dart';
 
 class CoachingScreen extends StatefulWidget {
   const CoachingScreen({super.key});
@@ -241,16 +243,22 @@ class _CoachingScreenState extends State<CoachingScreen> {
           Center(
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2D9CDB).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    _getTypeIcon(),
-                    size: 48,
-                    color: const Color(0xFF2D9CDB),
+                ClipOval(
+                  child: AnimatedGradientContainer(
+                    colors: const [
+                      AppColors.primaryTealLight,
+                      AppColors.primaryTeal,
+                      AppColors.accentCoralLight,
+                    ],
+                    duration: const Duration(seconds: 5),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      child: Icon(
+                        _getTypeIcon(),
+                        size: 48,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -260,15 +268,23 @@ class _CoachingScreenState extends State<CoachingScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2D9CDB).withOpacity(0.1),
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primaryTealLight.withAlpha(26), // ~10%
+                        AppColors.accentCoralLight.withAlpha(26), // ~10%
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
-                    _getTypeLabel(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2D9CDB),
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                    child: Text(
+                      _getTypeLabel(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -312,7 +328,7 @@ class _CoachingScreenState extends State<CoachingScreen> {
                 icon: const Icon(Icons.arrow_downward),
                 label: const Text('Explain more'),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF2D9CDB),
+                  foregroundColor: const Color(0xFF0F766E),
                 ),
               ),
             ),
@@ -359,7 +375,7 @@ class _CoachingScreenState extends State<CoachingScreen> {
                   child: ElevatedButton(
                     onPressed: () => _handleResonance('hell_yes'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2D9CDB),
+                      backgroundColor: const Color(0xFF0F766E),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

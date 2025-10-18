@@ -6,12 +6,15 @@ import '../providers/annoyance_provider.dart';
 import '../services/speech_service.dart';
 import '../widgets/tap_to_record_button.dart';
 import '../widgets/category_chip.dart';
+import '../widgets/animated_gradient_container.dart';
+import '../utils/app_colors.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'entry_detail_screen.dart';
 import 'pattern_report_screen.dart';
 import 'coaching_screen.dart';
+import 'auth_gate_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -169,8 +172,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
           
+          final annoyanceCount = annoyanceProvider.annoyances.length;
+          final isAnonymous = authProvider.user?.isAnonymous ?? false;
+          
+          // Check if this is the 5th annoyance and user is anonymous
+          if (annoyanceCount == 5 && isAnonymous) {
+            await Future.delayed(const Duration(milliseconds: 1500));
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const AuthGateScreen(
+                    message: 'You\'re on a roll! 🎉',
+                    subtitle: 'You\'ve recorded 5 annoyances. Sign up now to unlock coaching insights and keep your progress forever!',
+                  ),
+                ),
+              );
+            }
+          }
           // Navigate to coaching screen if this is their first annoyance
-          if (annoyanceProvider.annoyances.length == 1) {
+          else if (annoyanceCount == 1) {
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
               Navigator.of(context).push(
@@ -283,70 +303,73 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Coaching button - only show if user has entries
               if (!_isRecording && !_isSaving && annoyanceProvider.annoyances.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF2D9CDB),
-                        const Color(0xFF56CCF2),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF2D9CDB).withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AnimatedGradientContainer(
+                    colors: const [
+                      AppColors.primaryTealLight,
+                      AppColors.primaryTeal,
+                      AppColors.accentCoral,
                     ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const CoachingScreen(),
+                    duration: const Duration(seconds: 4),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0x660F766E), // primaryTeal at 40% opacity
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const CoachingScreen(),
                               ),
-                              child: const Icon(
-                                Icons.lightbulb,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Get Your Fix',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0x33FFFFFF), // white at 20% opacity
+                                    shape: BoxShape.circle,
                                   ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'One key insight from your patterns',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
+                                  child: const Icon(
+                                    Icons.lightbulb,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Get Your Fix',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'One key insight from your patterns',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 14,
                                     ),
                                   ),
                                 ],

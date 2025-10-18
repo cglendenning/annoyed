@@ -77,7 +77,7 @@ class ProfileScreen extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF2D9CDB),
+                              color: Color(0xFF0F766E),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -185,7 +185,7 @@ class ProfileScreen extends StatelessWidget {
                             value: entry.value / annoyances.length,
                             backgroundColor: Colors.grey.shade200,
                             valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFF2D9CDB),
+                              Color(0xFF0F766E),
                             ),
                           ),
                         ],

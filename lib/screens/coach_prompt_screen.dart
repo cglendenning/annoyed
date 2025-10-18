@@ -26,7 +26,7 @@ class CoachPromptScreen extends StatelessWidget {
               const Icon(
                 Icons.lightbulb_outline,
                 size: 80,
-                color: Color(0xFF2D9CDB),
+                color: Color(0xFF0F766E),
               ),
               
               const SizedBox(height: 32),
@@ -182,7 +182,7 @@ class CoachPromptScreen extends StatelessWidget {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2D9CDB),
+                        backgroundColor: const Color(0xFF0F766E),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

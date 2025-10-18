@@ -13,6 +13,7 @@ import 'providers/suggestion_provider.dart';
 import 'providers/preferences_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
+import 'utils/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,15 +64,25 @@ class AnnoyedApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF2D9CDB),
+            seedColor: AppColors.primaryTeal,
             brightness: Brightness.light,
           ),
           useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+          scaffoldBackgroundColor: const Color(0xFFF0FDFA), // Very light teal
           appBarTheme: const AppBarTheme(
             backgroundColor: Colors.transparent,
             elevation: 0,
             foregroundColor: Colors.black87,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryTeal,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          floatingActionButtonTheme: FloatingActionButtonThemeData(
+            backgroundColor: AppColors.primaryTeal,
+            foregroundColor: Colors.white,
           ),
         ),
         home: const AuthGate(),

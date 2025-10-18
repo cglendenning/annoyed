@@ -38,11 +38,11 @@ class HoldToRecordButton extends StatelessWidget {
       child: Container(
         height: 200,
         decoration: BoxDecoration(
-          color: const Color(0xFF2D9CDB),
+          color: const Color(0xFF0F766E),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2D9CDB).withOpacity(0.3),
+              color: const Color(0xFF0F766E).withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),

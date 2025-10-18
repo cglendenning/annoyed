@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../providers/auth_provider.dart';
 import '../services/analytics_service.dart';
+import '../utils/app_colors.dart';
+import '../widgets/animated_gradient_container.dart';
+import 'email_auth_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback? onComplete;
@@ -37,7 +39,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             });
           },
               children: [
-                const _WelcomePage(),
+                const _IntroPage(),
                 const _TutorialPage(),
                 _SpeechRecognitionPermissionPage(
                   onPermissionGranted: () async {
@@ -73,7 +75,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: _currentPage == index
-                            ? const Color(0xFF2D9CDB)
+                            ? const Color(0xFF0F766E)
                             : Colors.grey.shade300,
                       ),
                     );
@@ -137,39 +139,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class _WelcomePage extends StatefulWidget {
-  const _WelcomePage();
-
-  @override
-  State<_WelcomePage> createState() => _WelcomePageState();
-}
-
-class _WelcomePageState extends State<_WelcomePage> {
-  bool _isLoading = false;
-
-  Future<void> _handleAppleSignIn() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.signInWithApple();
-      // AuthGate will handle navigation after sign in
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sign in failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
+class _IntroPage extends StatelessWidget {
+  const _IntroPage();
 
   @override
   Widget build(BuildContext context) {
@@ -179,18 +150,35 @@ class _WelcomePageState extends State<_WelcomePage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Spacer(),
-          const Icon(
-            Icons.bolt_outlined,
-            size: 80,
-            color: Color(0xFF2D9CDB),
+          ClipOval(
+            child: AnimatedGradientContainer(
+              colors: const [
+                AppColors.primaryTealLight,
+                AppColors.primaryTeal,
+                AppColors.accentCoralLight,
+              ],
+              duration: const Duration(seconds: 4),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                child: const Icon(
+                  Icons.bolt_outlined,
+                  size: 60,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Annoyed',
-            style: TextStyle(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -1,
+          ShaderMask(
+            shaderCallback: (bounds) => AppColors.meshGradient.createShader(bounds),
+            child: const Text(
+              'Annoyed',
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -1,
+                color: Colors.white,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -206,13 +194,20 @@ class _WelcomePageState extends State<_WelcomePage> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primaryTealLight.withAlpha(26),
+                  AppColors.accentCoralLight.withAlpha(26),
+                ],
+              ),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Color(0x0D000000),
                   blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
@@ -220,7 +215,7 @@ class _WelcomePageState extends State<_WelcomePage> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.mic, color: Color(0xFF2D9CDB)),
+                    Icon(Icons.mic, color: AppColors.primaryTeal),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -233,7 +228,7 @@ class _WelcomePageState extends State<_WelcomePage> {
                 SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.lightbulb_outline, color: Color(0xFF2D9CDB)),
+                    Icon(Icons.lightbulb_outline, color: AppColors.primaryTeal),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -246,7 +241,7 @@ class _WelcomePageState extends State<_WelcomePage> {
                 SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.psychology, color: Color(0xFF2D9CDB)),
+                    Icon(Icons.psychology, color: AppColors.accentCoral),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -260,14 +255,66 @@ class _WelcomePageState extends State<_WelcomePage> {
             ),
           ),
           const Spacer(),
-          if (_isLoading)
-            const CircularProgressIndicator()
-          else
-            SignInWithAppleButton(
-              onPressed: _handleAppleSignIn,
-              style: SignInWithAppleButtonStyle.black,
+          SizedBox(
+            width: double.infinity,
             height: 56,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedGradientContainer(
+                colors: const [
+                  AppColors.primaryTealLight,
+                  AppColors.primaryTeal,
+                  AppColors.primaryTealDark,
+                ],
+                duration: const Duration(seconds: 3),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    // Sign in anonymously to start using the app
+                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    try {
+                      await authProvider.signInAnonymously();
+                      // AuthGate will handle navigation
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Get Started',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const EmailAuthScreen(),
+                ),
+              );
+            },
+            child: const Text('Already have an account? Sign In'),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Your data stays private and secure',
@@ -277,7 +324,7 @@ class _WelcomePageState extends State<_WelcomePage> {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 100), // Space for swipe hint
+          const SizedBox(height: 100),
         ],
       ),
     );
@@ -643,7 +690,7 @@ class _SpeechRecognitionPermissionPageState extends State<_SpeechRecognitionPerm
             child: ElevatedButton(
               onPressed: _isRequesting ? null : (_hasRequested ? null : _handleRequest),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _hasRequested ? Colors.green : const Color(0xFF2D9CDB),
+                backgroundColor: _hasRequested ? Colors.green : const Color(0xFF0F766E),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -873,7 +920,7 @@ class _MicrophonePermissionPageState extends State<_MicrophonePermissionPage> {
             child: ElevatedButton(
                 onPressed: _isRequesting ? null : _handleRequest,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2D9CDB),
+                backgroundColor: const Color(0xFF0F766E),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

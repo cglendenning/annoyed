@@ -163,7 +163,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   const Icon(
                     Icons.stars,
                     size: 80,
-                    color: Color(0xFF2D9CDB),
+                    color: Color(0xFF0F766E),
                   ),
                   const SizedBox(height: 24),
                   const Text(
@@ -296,7 +296,7 @@ class _FeatureTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF2D9CDB)),
+          Icon(icon, color: const Color(0xFF0F766E)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -344,12 +344,12 @@ class _PricingCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isRecommended
-              ? const Color(0xFF2D9CDB).withOpacity(0.1)
+              ? const Color(0xFF0F766E).withOpacity(0.1)
               : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isRecommended
-                ? const Color(0xFF2D9CDB)
+                ? const Color(0xFF0F766E)
                 : Colors.grey.shade300,
             width: isRecommended ? 2 : 1,
           ),
@@ -375,7 +375,7 @@ class _PricingCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2D9CDB),
+                        color: const Color(0xFF0F766E),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -396,7 +396,7 @@ class _PricingCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF2D9CDB),
+                color: Color(0xFF0F766E),
               ),
             ),
           ],
@@ -427,12 +427,12 @@ class _FallbackPricingCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isRecommended
-              ? const Color(0xFF2D9CDB).withOpacity(0.1)
+              ? const Color(0xFF0F766E).withOpacity(0.1)
               : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isRecommended
-                ? const Color(0xFF2D9CDB)
+                ? const Color(0xFF0F766E)
                 : Colors.grey.shade300,
             width: isRecommended ? 2 : 1,
           ),
@@ -458,7 +458,7 @@ class _FallbackPricingCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2D9CDB),
+                        color: const Color(0xFF0F766E),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -479,7 +479,7 @@ class _FallbackPricingCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF2D9CDB),
+                color: Color(0xFF0F766E),
               ),
             ),
           ],

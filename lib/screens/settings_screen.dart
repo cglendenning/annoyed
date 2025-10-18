@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
+import 'about_screen.dart';
+import 'terms_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'paywall_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -112,6 +117,139 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const Icon(Icons.delete_forever, color: Colors.red),
             onTap: _deleteAllData,
           ),
+          
+          ListTile(
+            title: const Text('Delete Account'),
+            subtitle: const Text('Permanently delete your account and all data (GDPR)'),
+            trailing: const Icon(Icons.person_remove, color: Colors.red),
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delete Account'),
+                  content: const Text(
+                    'This will permanently delete your account and all associated data. '
+                    'This action cannot be undone and complies with GDPR right to be forgotten.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Delete Account'),
+                    ),
+                  ],
+                ),
+              );
+              
+              if (confirm == true) {
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                try {
+                  await authProvider.deleteAccount();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Account deleted successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+          ),
+
+          const Divider(height: 32),
+
+          // Subscription
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'Subscription',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Upgrade to Pro'),
+            subtitle: const Text('Unlock all premium features'),
+            leading: const Icon(Icons.stars, color: Color(0xFF0F766E)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const PaywallScreen(),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text('Restore Purchases'),
+            subtitle: const Text('Already subscribed? Restore your access'),
+            leading: const Icon(Icons.download),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () async {
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+              
+              try {
+                final customerInfo = await Purchases.restorePurchases();
+                Navigator.pop(context); // Close loading dialog
+                
+                if (customerInfo.entitlements.all['pro']?.isActive == true) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ Purchases restored!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No active subscriptions found'),
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                Navigator.pop(context); // Close loading dialog
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Restore failed: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
 
           const Divider(height: 32),
 
@@ -148,20 +286,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const ListTile(
             title: Text('Version'),
-            trailing: Text('0.1.0'),
+            trailing: Text('1.0.0'),
+          ),
+          ListTile(
+            title: const Text('About Coach Craig'),
+            leading: const Icon(Icons.person),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const AboutScreen(),
+                ),
+              );
+            },
           ),
           ListTile(
             title: const Text('Terms of Service'),
-            trailing: const Icon(Icons.open_in_new),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
-              // TODO: Open terms
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const TermsScreen(),
+                ),
+              );
             },
           ),
           ListTile(
             title: const Text('Privacy Policy'),
-            trailing: const Icon(Icons.open_in_new),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
-              // TODO: Open privacy policy
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const PrivacyPolicyScreen(),
+                ),
+              );
             },
           ),
         ],
