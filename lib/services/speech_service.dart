@@ -11,8 +11,8 @@ class SpeechService {
 
     // Initialize speech recognition (this will trigger iOS permission prompts)
     _isInitialized = await _speech.initialize(
-      onError: (error) => print('Speech error: ${error.errorMsg}'),
-      onStatus: (status) => print('Speech status: $status'),
+      onError: (error) => debugPrint('Speech error: ${error.errorMsg}'),
+      onStatus: (status) => debugPrint('Speech status: $status'),
     );
 
     return _isInitialized;

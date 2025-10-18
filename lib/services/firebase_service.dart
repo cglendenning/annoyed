@@ -214,7 +214,7 @@ class FirebaseService {
       final result = await callable.call({'text': text});
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling classifyAnnoyance: $e');
+      debugPrint('Error calling classifyAnnoyance: $e');
       rethrow;
     }
   }
@@ -233,7 +233,7 @@ class FirebaseService {
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling generateSuggestion: $e');
+      debugPrint('Error calling generateSuggestion: $e');
       rethrow;
     }
   }
@@ -250,7 +250,7 @@ class FirebaseService {
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling generateCoaching: $e');
+      debugPrint('Error calling generateCoaching: $e');
       rethrow;
     }
   }
@@ -266,7 +266,7 @@ class FirebaseService {
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling getUserCostStatus: $e');
+      debugPrint('Error calling getUserCostStatus: $e');
       rethrow;
     }
   }
@@ -313,7 +313,7 @@ class FirebaseService {
         return data;
       }).toList();
     } catch (e) {
-      print('Error getting coachings: $e');
+      debugPrint('Error getting coachings: $e');
       return [];
     }
   }

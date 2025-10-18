@@ -42,7 +42,7 @@ class AnnoyanceProvider with ChangeNotifier {
       _error = null;
     } catch (e) {
       _error = e.toString();
-      print('Error loading annoyances: $e');
+      debugPrint('Error loading annoyances: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -83,7 +83,7 @@ class AnnoyanceProvider with ChangeNotifier {
       return id;
     } catch (e) {
       _error = e.toString();
-      print('Error saving annoyance: $e');
+      debugPrint('Error saving annoyance: $e');
       notifyListeners();
       return null;
     }
@@ -96,7 +96,7 @@ class AnnoyanceProvider with ChangeNotifier {
       await loadAnnoyances(uid);
     } catch (e) {
       _error = e.toString();
-      print('Error updating annoyance: $e');
+      debugPrint('Error updating annoyance: $e');
       notifyListeners();
     }
   }
@@ -108,7 +108,7 @@ class AnnoyanceProvider with ChangeNotifier {
       await loadAnnoyances(uid);
     } catch (e) {
       _error = e.toString();
-      print('Error deleting annoyance: $e');
+      debugPrint('Error deleting annoyance: $e');
       notifyListeners();
     }
   }

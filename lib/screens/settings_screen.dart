@@ -37,11 +37,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Check if user is signed in
     if (!authProvider.isAuthenticated) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You must be signed in to delete data'),
-            backgroundColor: Colors.red,
-          ),
+        _showErrorDialog(
+          'Sign In Required',
+          'You must be signed in to delete data. Please sign up or sign in first to manage your data.',
         );
       }
       return;
@@ -79,29 +77,151 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirm == true) {
+      // Show loading dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+      
       try {
         // This deletes everything - account, data, etc.
         await authProvider.deleteAccount();
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('All data permanently deleted'),
-              backgroundColor: Colors.green,
-            ),
+          Navigator.of(context).pop(); // Close loading dialog
+          _showSuccessDialog(
+            'Data Deleted',
+            'All your data has been permanently deleted from our systems.',
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          Navigator.of(context).pop(); // Close loading dialog
+          
+          // Parse error message
+          String errorMessage = 'Unable to delete data';
+          String errorDetails = e.toString();
+          
+          if (errorDetails.contains('permission-denied')) {
+            errorMessage = 'Permission Denied';
+            errorDetails = 'You may need to sign in again to delete your data. Please try signing out and signing back in.';
+          } else if (errorDetails.contains('network')) {
+            errorMessage = 'Network Error';
+            errorDetails = 'Please check your internet connection and try again.';
+          } else if (errorDetails.contains('requires-recent-login')) {
+            errorMessage = 'Authentication Required';
+            errorDetails = 'For security, please sign out and sign back in, then try deleting again.';
+          }
+          
+          _showErrorDialog(errorMessage, errorDetails);
         }
       }
     }
+  }
+  
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.bolt_outlined,
+                color: Colors.red.shade700,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showSuccessDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle_outline,
+                color: Colors.green.shade700,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -363,10 +483,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
-
-
-
 
 
 

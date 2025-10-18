@@ -40,7 +40,7 @@ class _CoachingHistoryScreenState extends State<CoachingHistoryScreen> {
           });
         }
       } catch (e) {
-        print('Error loading coachings: $e');
+        debugPrint('Error loading coachings: $e');
         if (mounted) {
           setState(() {
             _isLoading = false;

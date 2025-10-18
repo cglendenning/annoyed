@@ -8,7 +8,7 @@ class PaywallService {
     try {
       return await FirebaseService.getUserCostStatus(uid: uid);
     } catch (e) {
-      print('Error getting cost status: $e');
+      debugPrint('Error getting cost status: $e');
       // Return safe defaults on error
       return {
         'currentCost': 0.0,

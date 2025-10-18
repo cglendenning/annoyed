@@ -90,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _transcript = '';
       });
       
-      print('Speech error: $e');
+      debugPrint('Speech error: $e');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

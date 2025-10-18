@@ -37,7 +37,7 @@ class AuthProvider with ChangeNotifier {
       await AnalyticsService.logInstall();
       notifyListeners();
     } catch (e) {
-      print('Error signing in: $e');
+      debugPrint('Error signing in: $e');
       rethrow;
     }
   }
@@ -49,7 +49,7 @@ class AuthProvider with ChangeNotifier {
       await AnalyticsService.logInstall();
       notifyListeners();
     } catch (e) {
-      print('Error signing in with Apple: $e');
+      debugPrint('Error signing in with Apple: $e');
       rethrow;
     }
   }
@@ -61,7 +61,7 @@ class AuthProvider with ChangeNotifier {
       await AnalyticsService.logInstall();
       notifyListeners();
     } catch (e) {
-      print('Error signing in with Google: $e');
+      debugPrint('Error signing in with Google: $e');
       rethrow;
     }
   }
@@ -95,7 +95,7 @@ class AuthProvider with ChangeNotifier {
       await AnalyticsService.logInstall();
       notifyListeners();
     } catch (e) {
-      print('Error signing up: $e');
+      debugPrint('Error signing up: $e');
       rethrow;
     }
   }
@@ -140,7 +140,7 @@ class AuthProvider with ChangeNotifier {
       await AnalyticsService.logEvent('account_upgraded');
       notifyListeners();
     } catch (e) {
-      print('Error linking anonymous account: $e');
+      debugPrint('Error linking anonymous account: $e');
       rethrow;
     }
   }
@@ -159,7 +159,7 @@ class AuthProvider with ChangeNotifier {
       _user = credential.user;
       notifyListeners();
     } catch (e) {
-      print('Error signing in: $e');
+      debugPrint('Error signing in: $e');
       rethrow;
     }
   }
@@ -169,7 +169,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
     } catch (e) {
-      print('Error sending password reset: $e');
+      debugPrint('Error sending password reset: $e');
       rethrow;
     }
   }
@@ -243,10 +243,6 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-
-
-
-
 
 
 

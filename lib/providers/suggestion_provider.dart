@@ -25,7 +25,7 @@ class SuggestionProvider with ChangeNotifier {
       _error = null;
     } catch (e) {
       _error = e.toString();
-      print('Error loading suggestions: $e');
+      debugPrint('Error loading suggestions: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -67,7 +67,7 @@ class SuggestionProvider with ChangeNotifier {
       return suggestion.copyWith(id: id);
     } catch (e) {
       _error = e.toString();
-      print('Error generating suggestion: $e');
+      debugPrint('Error generating suggestion: $e');
       notifyListeners();
       return null;
     }
@@ -97,7 +97,7 @@ class SuggestionProvider with ChangeNotifier {
       await loadSuggestions(suggestion.uid);
     } catch (e) {
       _error = e.toString();
-      print('Error setting resonance: $e');
+      debugPrint('Error setting resonance: $e');
       notifyListeners();
     }
   }
@@ -118,7 +118,7 @@ class SuggestionProvider with ChangeNotifier {
       await loadSuggestions(suggestion.uid);
     } catch (e) {
       _error = e.toString();
-      print('Error marking completed: $e');
+      debugPrint('Error marking completed: $e');
       notifyListeners();
     }
   }

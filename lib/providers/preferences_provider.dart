@@ -23,7 +23,7 @@ class PreferencesProvider with ChangeNotifier {
       _error = null;
     } catch (e) {
       _error = e.toString();
-      print('Error loading preferences: $e');
+      debugPrint('Error loading preferences: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -47,7 +47,7 @@ class PreferencesProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _error = e.toString();
-      print('Error updating preferred hours: $e');
+      debugPrint('Error updating preferred hours: $e');
       notifyListeners();
     }
   }
@@ -67,7 +67,7 @@ class PreferencesProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _error = e.toString();
-      print('Error updating DND respect: $e');
+      debugPrint('Error updating DND respect: $e');
       notifyListeners();
     }
   }
@@ -87,7 +87,7 @@ class PreferencesProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _error = e.toString();
-      print('Error updating pro status: $e');
+      debugPrint('Error updating pro status: $e');
       notifyListeners();
     }
   }

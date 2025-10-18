@@ -23,7 +23,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   bool _hasRequestedSpeechPermission = false;
-  bool _hasRequestedMicPermission = false;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +45,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     if (!_hasRequestedSpeechPermission) {
                       _hasRequestedSpeechPermission = true;
                       await _requestSpeechPermission();
-                      // Onboarding complete - _requestSpeechPermission calls _completeOnboarding
                     }
                   },
                   onSwipeToComplete: () {
@@ -118,8 +116,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     await Future.delayed(const Duration(milliseconds: 500));
     final speech = stt.SpeechToText();
     final available = await speech.initialize(
-      onError: (error) => print('Speech error: ${error.errorMsg}'),
-      onStatus: (status) => print('Speech status: $status'),
+      onError: (error) => debugPrint('Speech error: ${error.errorMsg}'),
+      onStatus: (status) => debugPrint('Speech status: $status'),
     );
 
     if (available) {
@@ -132,7 +130,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       try {
         await authProvider.signInAnonymously();
       } catch (e) {
-        print('Error signing in anonymously: $e');
+        debugPrint('Error signing in anonymously: $e');
       }
     }
 
@@ -699,241 +697,6 @@ class _SpeechRecognitionPermissionPageState extends State<_SpeechRecognitionPerm
         ],
       ),
     ),
-    );
-  }
-}
-
-class _MicrophonePermissionPage extends StatefulWidget {
-  final Future<void> Function() onPermissionGranted;
-
-  const _MicrophonePermissionPage({
-    required this.onPermissionGranted,
-  });
-
-  @override
-  State<_MicrophonePermissionPage> createState() => _MicrophonePermissionPageState();
-}
-
-class _MicrophonePermissionPageState extends State<_MicrophonePermissionPage> {
-  bool _hasRequested = false;
-  bool _isRequesting = false;
-  String? _status;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkPermission();
-  }
-
-  Future<void> _checkPermission() async {
-    final status = await Permission.microphone.status;
-    if (mounted) {
-      setState(() {
-        if (status.isGranted) {
-          _status = 'Permission already granted! Swipe to continue →';
-          _hasRequested = true;
-        } else if (status.isPermanentlyDenied) {
-          _status = 'Permission blocked. Tap button to open Settings';
-        } else {
-          _status = 'Tap button to request permission';
-        }
-      });
-    }
-  }
-
-  Future<void> _handleRequest() async {
-    if (_isRequesting) return;
-
-    // Check if permanently denied - if so, open settings
-    final currentStatus = await Permission.microphone.status;
-    if (currentStatus.isPermanentlyDenied) {
-      await openAppSettings();
-      return;
-    }
-
-    setState(() {
-      _isRequesting = true;
-    });
-
-    await widget.onPermissionGranted();
-
-    // Check status after request
-    final status = await Permission.microphone.status;
-    
-    if (mounted) {
-      setState(() {
-        _isRequesting = false;
-        if (status.isGranted) {
-          _status = 'Permission granted! Swipe to continue →';
-          _hasRequested = true;
-        } else if (status.isPermanentlyDenied) {
-          _status = 'Permission blocked. Tap button to open Settings';
-          _hasRequested = false; // Keep button visible
-        } else {
-          _status = 'Permission denied. Swipe to continue →';
-          _hasRequested = true;
-        }
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Spacer(),
-          const Text(
-            'Microphone Permission',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _status ?? 'Loading...',
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black54,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          
-          // iOS Permission Dialog Mockup
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.mic,
-                  size: 48,
-                  color: Color(0xFF007AFF),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '"Annoyed" Would Like to\nAccess the Microphone',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'This lets the app record audio for voice input.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.black.withOpacity(0.6),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  height: 1,
-                  color: Colors.grey.shade300,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Don\'t Allow',
-                        style: TextStyle(
-                          fontSize: 17,
-                          color: const Color(0xFF007AFF),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 40,
-                      color: Colors.grey.shade300,
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'OK',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF007AFF),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 32),
-          const Text(
-            'Your audio recordings are only used for on-device\nspeech-to-text conversion.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
-              height: 1.4,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const Spacer(),
-          
-          // Action button
-          if (!_hasRequested)
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-                onPressed: _isRequesting ? null : _handleRequest,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-                child: _isRequesting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : FutureBuilder<PermissionStatus>(
-                        future: Permission.microphone.status,
-                        builder: (context, snapshot) {
-                          final isPermanentlyDenied = snapshot.data?.isPermanentlyDenied ?? false;
-                          return Text(
-                            isPermanentlyDenied ? 'Open Settings' : 'Allow Microphone',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                          );
-                        },
-                      ),
-              ),
-            ),
-          const SizedBox(height: 100), // Space for swipe hint
-        ],
-      ),
     );
   }
 }

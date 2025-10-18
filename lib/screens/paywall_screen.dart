@@ -33,7 +33,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         _offerings = offerings;
       });
     } catch (e) {
-      print('Error loading offerings: $e');
+      debugPrint('Error loading offerings: $e');
     }
   }
 
