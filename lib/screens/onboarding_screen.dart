@@ -126,6 +126,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await AnalyticsService.logPermissionMicGranted();
     }
 
+    // Sign in anonymously to complete setup
+    if (mounted) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      try {
+        await authProvider.signInAnonymously();
+      } catch (e) {
+        print('Error signing in anonymously: $e');
+      }
+    }
+
     // Mark onboarding as complete (this is the last step)
     await _completeOnboarding();
   }
@@ -924,4 +934,40 @@ class _MicrophonePermissionPageState extends State<_MicrophonePermissionPage> {
       ),
     );
   }
+}
+
+// Custom painter for sketched arrow
+class _SketchedArrowPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.grey.shade600
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final path = Path();
+    
+    // Main arrow line (slightly wavy for hand-drawn effect)
+    path.moveTo(0, size.height / 2);
+    path.cubicTo(
+      size.width * 0.3, size.height / 2 - 2,
+      size.width * 0.5, size.height / 2 + 2,
+      size.width * 0.85, size.height / 2,
+    );
+    
+    // Arrow head top line
+    path.moveTo(size.width * 0.85, size.height / 2);
+    path.lineTo(size.width * 0.7, size.height * 0.15);
+    
+    // Arrow head bottom line
+    path.moveTo(size.width * 0.85, size.height / 2);
+    path.lineTo(size.width * 0.7, size.height * 0.85);
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -7,7 +7,6 @@ import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
 import 'about_screen.dart';
 import 'terms_screen.dart';
-import 'privacy_policy_screen.dart';
 import 'paywall_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -36,9 +35,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete All Data'),
+        title: const Text('Delete All My Data'),
         content: const Text(
-          'This will permanently delete all your annoyances, suggestions, and preferences. This action cannot be undone.',
+          'This will permanently delete:\n\n'
+          '• Your account and authentication\n'
+          '• All annoyances and recordings\n'
+          '• All coaching and suggestions\n'
+          '• All preferences and settings\n'
+          '• Everything from Firebase\n'
+          '• All local data on this device\n\n'
+          'This action cannot be undone and complies with GDPR "right to be forgotten."',
         ),
         actions: [
           TextButton(
@@ -51,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete All'),
+            child: const Text('Delete Everything'),
           ),
         ],
       ),
@@ -59,20 +65,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirm == true) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final uid = authProvider.userId;
-
-      if (uid != null) {
-        await AnalyticsService.logDeleteAll();
-        await FirebaseService.deleteAllUserData(uid);
-
+      
+      try {
+        // This deletes everything - account, data, etc.
+        await authProvider.deleteAccount();
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('All data deleted'),
+              content: Text('All data permanently deleted'),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
     }
@@ -112,66 +125,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             title: const Text(
               'Delete all my data',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text(
+              'Remove everything from Firebase, this device, and everywhere',
+              style: TextStyle(fontSize: 13),
             ),
             trailing: const Icon(Icons.delete_forever, color: Colors.red),
             onTap: _deleteAllData,
-          ),
-          
-          ListTile(
-            title: const Text('Delete Account'),
-            subtitle: const Text('Permanently delete your account and all data (GDPR)'),
-            trailing: const Icon(Icons.person_remove, color: Colors.red),
-            onTap: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Delete Account'),
-                  content: const Text(
-                    'This will permanently delete your account and all associated data. '
-                    'This action cannot be undone and complies with GDPR right to be forgotten.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Delete Account'),
-                    ),
-                  ],
-                ),
-              );
-              
-              if (confirm == true) {
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                try {
-                  await authProvider.deleteAccount();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Account deleted successfully'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: ${e.toString()}'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              }
-            },
           ),
 
           const Divider(height: 32),
@@ -307,17 +268,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const TermsScreen(),
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text('Privacy Policy'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const PrivacyPolicyScreen(),
                 ),
               );
             },

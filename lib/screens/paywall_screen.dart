@@ -6,7 +6,10 @@ import '../providers/preferences_provider.dart';
 import '../services/analytics_service.dart';
 
 class PaywallScreen extends StatefulWidget {
-  const PaywallScreen({super.key});
+  final String? message;
+  final String? subtitle;
+  
+  const PaywallScreen({super.key, this.message, this.subtitle});
 
   @override
   State<PaywallScreen> createState() => _PaywallScreenState();
@@ -166,14 +169,49 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     color: Color(0xFF0F766E),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Upgrade to Pro',
-                    style: TextStyle(
+                  
+                  // Custom message if provided (for usage limits)
+                  if (widget.message != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.shade300),
+                      ),
+                      child: Text(
+                        widget.message!,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                  
+                  Text(
+                    widget.message != null ? 'Subscribe to Continue' : 'Upgrade to Pro',
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  
+                  if (widget.subtitle != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.subtitle!,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  
                   const SizedBox(height: 32),
 
                   // Features
