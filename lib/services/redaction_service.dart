@@ -54,7 +54,33 @@ class RedactionService {
       (match) => '[ZIP]',
     );
 
+    // Sanitize for JSON safety - remove control characters and problematic chars
+    redacted = _sanitizeForJSON(redacted);
+
     return redacted;
+  }
+  
+  /// Sanitize text to be JSON-safe when used in API calls
+  static String _sanitizeForJSON(String text) {
+    // Replace control characters with spaces
+    text = text.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), ' ');
+    
+    // Replace curly braces with parentheses (they break JSON structure in prompts)
+    text = text.replaceAll('{', '(').replaceAll('}', ')');
+    
+    // Replace backslashes with forward slashes (avoid escape issues)
+    text = text.replaceAll('\\', '/');
+    
+    // Normalize quotes to single quotes (avoid JSON string termination)
+    text = text.replaceAll('"', "'");
+    
+    // Remove any null bytes
+    text = text.replaceAll('\u0000', '');
+    
+    // Collapse multiple spaces
+    text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    
+    return text;
   }
 
   /// Check if text contains potential PII

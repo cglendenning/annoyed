@@ -485,6 +485,11 @@ Bad examples (too vague):
 
 The recommendation should stand alone. The explanation is supporting commentary.
 
+IMPORTANT JSON FORMATTING:
+- Do NOT use curly braces in your text content
+- Keep all text on single lines (use spaces instead of literal newlines)
+- Ensure all quotes are properly escaped
+
 Respond in JSON:
 {
   "recommendation": "2-3 sentences max. Specific action or mindset shift that directly addresses their actual triggers.",
@@ -497,7 +502,7 @@ Respond in JSON:
       messages: [
         {
           role: 'system',
-          content: `You are a direct, actionable coach. No corporate jargon. Specific recommendations only. Always respond with valid JSON. IMPORTANT: Each time you're called, you must give a COMPLETELY DIFFERENT recommendation than before. Timestamp: ${Date.now()} - Random seed: ${Math.random()} - Be creative and varied.`,
+          content: `You are a direct, actionable coach. No corporate jargon. Specific recommendations only. Always respond with valid JSON ONLY - no markdown, no extra text. Do NOT use curly braces in your text content. IMPORTANT: Each time you're called, you must give a COMPLETELY DIFFERENT recommendation than before. Timestamp: ${Date.now()} - Random seed: ${Math.random()} - Be creative and varied.`,
         },
         {
           role: 'user',
@@ -506,6 +511,7 @@ Respond in JSON:
       ],
       temperature: 1.0,
       max_tokens: 2000,
+      response_format: { type: "json_object" }
     });
 
     tokensIn = response.usage?.prompt_tokens || 0;

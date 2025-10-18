@@ -32,51 +32,25 @@ class SpeechService {
       }
     }
 
-    int retryCount = 0;
-    bool success = false;
-    
-    while (!success && retryCount <= maxRetries) {
-      try {
-        final result = await _speech.listen(
-          onResult: (result) {
-            if (result.finalResult) {
-              onResult(result.recognizedWords);
-              // Don't auto-complete on final result - let user tap to stop
-            } else {
-              onResult(result.recognizedWords);
-            }
-          },
-          listenFor: const Duration(seconds: 30),
-          pauseFor: const Duration(seconds: 30), // Don't auto-pause
-          partialResults: true,
-          cancelOnError: true,
-          listenMode: stt.ListenMode.confirmation,
-          onSoundLevelChange: (level) {
-            // Optional: could use this to show audio level indicator
-          },
-        );
-        
-        if (result) {
-          success = true;
+    // Just call listen - it starts immediately and callbacks handle the results
+    await _speech.listen(
+      onResult: (result) {
+        if (result.finalResult) {
+          onResult(result.recognizedWords);
+          // Don't auto-complete on final result - let user tap to stop
         } else {
-          throw Exception('Failed to start listening');
+          onResult(result.recognizedWords);
         }
-      } catch (e) {
-        retryCount++;
-        debugPrint('Speech recognition attempt $retryCount failed: $e');
-        
-        if (retryCount > maxRetries) {
-          throw Exception('Failed to start listening after $maxRetries attempts. Please check microphone permissions in Settings.');
-        }
-        
-        // Wait before retry with exponential backoff
-        await Future.delayed(Duration(milliseconds: 300 * retryCount));
-        
-        // Re-initialize if needed
-        _isInitialized = false;
-        await initialize();
-      }
-    }
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 30), // Don't auto-pause
+      partialResults: true,
+      cancelOnError: true,
+      listenMode: stt.ListenMode.confirmation,
+      onSoundLevelChange: (level) {
+        // Optional: could use this to show audio level indicator
+      },
+    );
   }
 
   /// Stop listening

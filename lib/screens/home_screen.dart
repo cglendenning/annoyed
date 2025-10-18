@@ -84,27 +84,43 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
     } catch (e) {
-      // Permission denied or speech recognition not available
+      // Handle different error types
       setState(() {
         _isRecording = false;
         _transcript = '';
       });
       
-      debugPrint('Speech error: $e');
+      debugPrint('Speech error FULL: $e');
+      debugPrint('Speech error type: ${e.runtimeType}');
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Microphone permission is required to record'),
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Settings',
-              onPressed: () async {
-                await openAppSettings();
-              },
+        final errorMessage = e.toString();
+        debugPrint('Speech error message: $errorMessage');
+        
+        // Check if it's actually a permission error
+        if (errorMessage.toLowerCase().contains('permission') || 
+            errorMessage.toLowerCase().contains('not available')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Microphone permission is required to record'),
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Settings',
+                onPressed: () async {
+                  await openAppSettings();
+                },
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Show the actual error for debugging
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Debug: $errorMessage'),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     }
   }
