@@ -276,7 +276,8 @@ class FirebaseService {
     required String uid,
     required String recommendation,
     required String type,
-    required String resonance, // 'hell_yes' or 'meh'
+    required String resonance, // 'hell_yes' or 'meh' or '' for not rated yet
+    String? explanation,
   }) async {
     final docRef = await _firestore.collection('coaching').add({
       'uid': uid,
@@ -284,8 +285,31 @@ class FirebaseService {
       'recommendation': recommendation,
       'type': type,
       'resonance': resonance,
+      'explanation': explanation ?? '',
     });
     return docRef.id;
+  }
+  
+  // Get all coachings for a user (newest first)
+  static Future<List<Map<String, dynamic>>> getAllCoachings({
+    required String uid,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection('coaching')
+          .where('uid', '==', uid)
+          .orderBy('ts', descending: true)
+          .get();
+      
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      print('Error getting coachings: $e');
+      return [];
+    }
   }
 
   // Delete all user data

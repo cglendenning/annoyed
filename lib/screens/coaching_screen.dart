@@ -7,6 +7,7 @@ import '../services/paywall_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/animated_gradient_container.dart';
 import 'paywall_screen.dart';
+import 'coaching_history_screen.dart';
 
 class CoachingScreen extends StatefulWidget {
   const CoachingScreen({super.key});
@@ -15,17 +16,50 @@ class CoachingScreen extends StatefulWidget {
   State<CoachingScreen> createState() => _CoachingScreenState();
 }
 
-class _CoachingScreenState extends State<CoachingScreen> {
+class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProviderStateMixin {
   bool _isLoading = true;
   bool _showExplanation = false;
   bool _hasGivenFeedback = false;
   String? _error;
   Map<String, dynamic>? _coaching;
+  int _loadingMessageIndex = 0;
+  late AnimationController _animationController;
+  
+  final List<String> _loadingMessages = [
+    'Analyzing your patterns...',
+    'Finding connections...',
+    'Crafting personalized insights...',
+    'Almost there...',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
+    _startLoadingMessages();
     _loadCoaching();
+  }
+  
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+  
+  void _startLoadingMessages() {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 3));
+      if (_isLoading && mounted) {
+        setState(() {
+          _loadingMessageIndex = (_loadingMessageIndex + 1) % _loadingMessages.length;
+        });
+        return true;
+      }
+      return false;
+    });
   }
 
   Future<void> _loadCoaching() async {
@@ -58,12 +92,13 @@ class _CoachingScreenState extends State<CoachingScreen> {
           _isLoading = false;
         });
         
-        // Save the recommendation immediately (without feedback) so regenerate knows what was shown
+        // Save the recommendation immediately (without feedback) so it's stored permanently
         await FirebaseService.saveCoachingResonance(
           uid: uid,
           recommendation: result['recommendation'],
           type: result['type'],
           resonance: '', // Empty means no feedback yet
+          explanation: result['explanation'] ?? '',
         );
         
         await AnalyticsService.logEvent('coaching_viewed');
@@ -192,35 +227,130 @@ class _CoachingScreenState extends State<CoachingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Fix'),
+        title: const Text('Your Coaching'),
         actions: [
-          if (!_isLoading && _error == null)
+          if (!_isLoading && _error == null) ...[
+            IconButton(
+              icon: const Icon(Icons.history),
+              tooltip: 'View coaching history',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const CoachingHistoryScreen(),
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: 'Generate new fix',
+              tooltip: 'Generate new coaching',
               onPressed: () async {
                 setState(() {
                   _hasGivenFeedback = false;
                   _showExplanation = false;
+                  _loadingMessageIndex = 0;
                 });
                 await _loadCoaching();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Generated new fix'),
+                      content: Text('Generated new coaching'),
                       duration: Duration(seconds: 1),
                     ),
                   );
                 }
               },
             ),
+          ],
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildBeautifulLoadingState()
           : _error != null
               ? _buildErrorState()
               : _buildCoachingContent(),
+    );
+  }
+  
+  Widget _buildBeautifulLoadingState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Animated gradient circle
+            AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                return Transform.rotate(
+                  angle: _animationController.value * 2 * 3.14159,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: SweepGradient(
+                        colors: const [
+                          AppColors.primaryTealLight,
+                          AppColors.primaryTeal,
+                          AppColors.accentCoral,
+                          AppColors.accentCoralLight,
+                          AppColors.primaryTealLight,
+                        ],
+                        stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+                      ),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                        ),
+                        child: const Icon(
+                          Icons.psychology,
+                          size: 48,
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Cycling loading messages
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              child: Text(
+                _loadingMessages[_loadingMessageIndex],
+                key: ValueKey(_loadingMessageIndex),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryTeal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            Text(
+              'Coach Craig is reviewing your patterns',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

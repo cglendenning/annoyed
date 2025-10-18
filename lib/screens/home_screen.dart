@@ -175,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final annoyanceCount = annoyanceProvider.annoyances.length;
           final isAnonymous = authProvider.user?.isAnonymous ?? false;
           
-          // Check if this is the 5th annoyance and user is anonymous
+          // Check if this is the 5th annoyance and user is anonymous (show auth gate)
           if (annoyanceCount == 5 && isAnonymous) {
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
@@ -189,8 +189,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }
           }
-          // Navigate to coaching screen if this is their first annoyance
-          else if (annoyanceCount == 1) {
+          // Auto-generate coaching after 1st annoyance and every 5th thereafter (1, 5, 10, 15, 20, etc.)
+          else if (annoyanceCount == 1 || (annoyanceCount % 5 == 0 && annoyanceCount > 0)) {
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
               Navigator.of(context).push(
@@ -357,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Get Your Fix',
+                                        'Get Your Coaching',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,
@@ -366,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       SizedBox(height: 4),
                                       Text(
-                                        'One key insight from your patterns',
+                                        'Personalized insights from your patterns',
                                         style: TextStyle(
                                           color: Colors.white70,
                                           fontSize: 14,
