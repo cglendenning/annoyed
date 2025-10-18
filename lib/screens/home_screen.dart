@@ -130,6 +130,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _saveAnnoyance(String transcript) async {
     if (transcript.trim().isEmpty) return;
+    
+    // Validate length
+    if (transcript.length > AppConstants.maxAnnoyanceLength) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Annoyance is too long (${transcript.length} characters). Maximum is ${AppConstants.maxAnnoyanceLength}.'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      setState(() {
+        _transcript = '';
+      });
+      return;
+    }
 
     setState(() {
       _isSaving = true;

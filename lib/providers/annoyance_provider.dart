@@ -3,6 +3,7 @@ import '../models/annoyance.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
 import '../services/redaction_service.dart';
+import '../utils/constants.dart';
 
 class AnnoyanceProvider with ChangeNotifier {
   List<Annoyance> _annoyances = [];
@@ -55,6 +56,11 @@ class AnnoyanceProvider with ChangeNotifier {
     required String transcript,
   }) async {
     try {
+      // Validate length
+      if (transcript.length > AppConstants.maxAnnoyanceLength) {
+        throw Exception('Annoyance is too long. Maximum length is ${AppConstants.maxAnnoyanceLength} characters.');
+      }
+      
       // Redact PII before sending to server
       final redactedTranscript = RedactionService.redact(transcript);
 

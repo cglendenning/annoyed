@@ -27,11 +27,13 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   Map<String, dynamic>? _coaching;
   int _loadingMessageIndex = 0;
   late AnimationController _animationController;
+  bool _isGenerating = false; // Prevent concurrent generation
   
   final List<String> _loadingMessages = [
-    'Analyzing your patterns...',
-    'Finding connections...',
-    'Crafting personalized insights...',
+    'Analyzing your patterns privately on our secure servers...',
+    'Finding connections in your entries...',
+    'Crafting personalized insights just for you...',
+    'Your data stays encrypted and private...',
     'Almost there...',
   ];
 
@@ -53,8 +55,22 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   }
   
   void _startLoadingMessages() {
+    int iterations = 0;
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 3));
+      iterations++;
+      
+      // Timeout after max iterations to prevent infinite loop
+      if (iterations >= AppConstants.maxLoadingMessageIterations) {
+        if (mounted && _isLoading) {
+          setState(() {
+            _error = 'Request timed out. Please try again.';
+            _isLoading = false;
+          });
+        }
+        return false;
+      }
+      
       if (_isLoading && mounted) {
         setState(() {
           _loadingMessageIndex = (_loadingMessageIndex + 1) % _loadingMessages.length;
@@ -68,9 +84,16 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   Future<void> _loadCoaching({bool forceRegenerate = false}) async {
     debugPrint('[CoachingScreen] Loading coaching at ${DateTime.now()}, forceRegenerate: $forceRegenerate');
     
+    // Prevent concurrent generation requests
+    if (_isGenerating) {
+      debugPrint('[CoachingScreen] Already generating, ignoring duplicate request');
+      return;
+    }
+    
     setState(() {
       _isLoading = true;
       _error = null;
+      _isGenerating = true;
     });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -80,6 +103,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
       setState(() {
         _error = 'Not authenticated';
         _isLoading = false;
+        _isGenerating = false;
       });
       return;
     }
@@ -134,14 +158,14 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
               debugPrint('  - ${annoyance.timestamp}: ${annoyance.transcript.substring(0, annoyance.transcript.length > 30 ? 30 : annoyance.transcript.length)}...');
             }
             
-            final newAnnoyancesSinceCoaching = newAnnoyances.length;
+            final newAnnoyancesSinceCoaching = newAnnoyances.length;            
             debugPrint('[CoachingScreen] DEBUG - New annoyances since coaching: $newAnnoyancesSinceCoaching');
             
-            if (newAnnoyancesSinceCoaching >= 5) {
+            if (newAnnoyancesSinceCoaching >= AppConstants.newAnnoyancesForCoachingRegeneration) {
               shouldGenerateNew = true;
               debugPrint('[CoachingScreen] ✓ New coaching due: $newAnnoyancesSinceCoaching new annoyances since last coaching');
             } else {
-              debugPrint('[CoachingScreen] ✗ Not enough new annoyances yet ($newAnnoyancesSinceCoaching/5)');
+              debugPrint('[CoachingScreen] ✗ Not enough new annoyances yet ($newAnnoyancesSinceCoaching/${AppConstants.newAnnoyancesForCoachingRegeneration})');
             }
           }
         }
@@ -162,6 +186,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                 'explanation': mostRecent['explanation'] ?? '',
               };
               _isLoading = false;
+              _isGenerating = false;
             });
             await AnalyticsService.logEvent('coaching_viewed');
           }
@@ -178,6 +203,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
         setState(() {
           _coaching = result;
           _isLoading = false;
+          _isGenerating = false;
         });
         
         // Note: Coaching will be saved to Firestore when user provides feedback (hell_yes/meh)
@@ -187,13 +213,21 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
       }
     } catch (e) {
       debugPrint('[CoachingScreen] Error: $e');
-      // Extract meaningful error message
+      // Extract meaningful error message from Firebase Functions errors
       String errorMsg = e.toString();
+      
+      // Try to extract clean error message from various Firebase error formats
       if (errorMsg.contains('message:')) {
-        // Extract the actual error message from Firebase error
-        final match = RegExp(r'message:\s*(.+?)(?:\n|$)').firstMatch(errorMsg);
+        // Firebase Functions error format: [cloud_functions/...] message: actual error
+        final match = RegExp(r'message:\s*(.+?)(?:\s*(?:\(|$))').firstMatch(errorMsg);
         if (match != null) {
-          errorMsg = match.group(1) ?? errorMsg;
+          errorMsg = match.group(1)?.trim() ?? errorMsg;
+        }
+      } else if (errorMsg.contains(']')) {
+        // Try to extract message after error code
+        final parts = errorMsg.split(']');
+        if (parts.length > 1) {
+          errorMsg = parts[1].trim();
         }
       }
       
@@ -205,6 +239,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
         if (mounted) {
           setState(() {
             _isLoading = false;
+            _isGenerating = false;
           });
           
           // Get detailed usage message
@@ -227,6 +262,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
         setState(() {
           _error = errorMsg;
           _isLoading = false;
+          _isGenerating = false;
         });
       }
     }

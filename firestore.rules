@@ -7,17 +7,23 @@ service cloud.firestore {
     }
     
     match /annoyances/{annoyanceId} {
-      allow read, write: if request.auth != null && 
-                           request.auth.uid == resource.data.uid;
+      // Separate read and write for better security
+      allow read: if request.auth != null && 
+                     resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && 
+                               resource.data.uid == request.auth.uid;
       allow create: if request.auth != null && 
-                      request.auth.uid == request.resource.data.uid;
+                      request.resource.data.uid == request.auth.uid;
     }
     
     match /suggestions/{suggestionId} {
-      allow read, write: if request.auth != null && 
-                           request.auth.uid == resource.data.uid;
+      // Separate read and write for better security
+      allow read: if request.auth != null && 
+                     resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && 
+                               resource.data.uid == request.auth.uid;
       allow create: if request.auth != null && 
-                      request.auth.uid == request.resource.data.uid;
+                      request.resource.data.uid == request.auth.uid;
     }
     
     match /coaching/{coachingId} {
@@ -39,6 +45,9 @@ service cloud.firestore {
                      request.auth.uid == resource.data.uid;
       // Block client-side creation - only Functions can create cost records
       allow create: if false;
+      // Allow users to delete their own cost records (for GDPR compliance)
+      allow delete: if request.auth != null && 
+                       request.auth.uid == resource.data.uid;
     }
   }
 }

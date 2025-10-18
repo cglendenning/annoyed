@@ -334,10 +334,24 @@ class FirebaseService {
       await doc.reference.delete();
     }
 
+    // Delete coaching records
+    final coachingSnapshot =
+        await _firestore.collection('coaching').where('uid', isEqualTo: uid).get();
+    for (final doc in coachingSnapshot.docs) {
+      await doc.reference.delete();
+    }
+
     // Delete events
     final eventsSnapshot =
         await eventsCollection.where('uid', isEqualTo: uid).get();
     for (final doc in eventsSnapshot.docs) {
+      await doc.reference.delete();
+    }
+
+    // Delete LLM cost records
+    final llmCostSnapshot =
+        await llmCostCollection.where('uid', isEqualTo: uid).get();
+    for (final doc in llmCostSnapshot.docs) {
       await doc.reference.delete();
     }
 

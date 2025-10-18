@@ -287,6 +287,7 @@ class _IntroPage extends StatelessWidget {
           
           TextButton(
             onPressed: () {
+              if (!mounted) return;
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const EmailAuthScreen(
@@ -349,6 +350,11 @@ class _TutorialPageState extends State<_TutorialPage> {
 
   void _startTypingAnimation() {
     _textTimer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
       if (_textIndex < _fullText.length) {
         setState(() {
           _displayedText += _fullText[_textIndex];
@@ -522,8 +528,8 @@ class _SpeechRecognitionPermissionPageState extends State<_SpeechRecognitionPerm
   Widget build(BuildContext context) {
     return GestureDetector(
       onHorizontalDragEnd: (details) {
-        // If swiping left (negative velocity) and permissions are complete
-        if (_hasRequested && details.primaryVelocity != null && details.primaryVelocity! < 0) {
+        // If swiping right (positive velocity) and permissions are complete
+        if (_hasRequested && details.primaryVelocity != null && details.primaryVelocity! > 0) {
           widget.onSwipeToComplete();
         }
       },

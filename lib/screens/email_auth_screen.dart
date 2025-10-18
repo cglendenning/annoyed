@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/password_validator.dart';
+import '../utils/constants.dart';
 import '../widgets/animated_gradient_container.dart';
 import 'terms_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -38,6 +40,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
   bool _agreedToTerms = false;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   String? _authError; // Inline error message for auth failures
+  DateTime? _lastPasswordResetRequest;
   
   @override
   void initState() {
@@ -93,8 +96,10 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
       return 'Email is required';
     }
     
-    // Basic email regex
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    // Improved email regex - more robust validation
+    final emailRegex = RegExp(
+      r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+    );
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email address';
     }
@@ -120,6 +125,9 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
       );
       return;
     }
+    
+    // Haptic feedback
+    HapticFeedback.mediumImpact();
     
     setState(() {
       _isLoading = true;
@@ -153,24 +161,30 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
       
       // Navigation handled by AuthGate - clear stack and let AuthGate route
       if (mounted) {
-        // Pop all screens and return to root, letting AuthGate handle routing
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        try {
+          // Pop all screens and return to root, letting AuthGate handle routing
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        } catch (e) {
+          // If popUntil fails, just pop current screen
+          debugPrint('Navigation error: $e');
+          Navigator.of(context).pop();
+        }
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Oops! Invalid login';
+        String errorMessage = AppErrorMessages.invalidCredentials;
         
-        if (e.toString().contains('email-already-in-use')) {
-          errorMessage = 'This email is already registered. Try signing in.';
-        } else if (e.toString().contains('invalid-email')) {
-          errorMessage = 'Invalid email address';
-        } else if (e.toString().contains('weak-password')) {
-          errorMessage = 'Password is too weak';
-        } else if (e.toString().contains('user-not-found')) {
-          errorMessage = 'No account found with this email';
-        } else if (e.toString().contains('wrong-password') || e.toString().contains('invalid-credential')) {
-          errorMessage = 'Oops! Invalid login';
+        // Only show specific errors for sign-up to help users
+        if (_isSignUp) {
+          if (e.toString().contains('email-already-in-use')) {
+            errorMessage = AppErrorMessages.emailAlreadyInUse;
+          } else if (e.toString().contains('weak-password')) {
+            errorMessage = AppErrorMessages.weakPassword;
+          } else if (e.toString().contains('invalid-email')) {
+            errorMessage = 'Please enter a valid email address';
+          }
         }
+        // For sign-in, use generic message to prevent account enumeration
         
         setState(() {
           _authError = errorMessage;
@@ -184,34 +198,53 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     final email = _emailController.text.trim();
     
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email address'),
-        ),
-      );
+      setState(() {
+        _authError = 'Please enter your email address';
+      });
       return;
     }
+    
+    // Rate limiting - prevent spam
+    if (_lastPasswordResetRequest != null) {
+      final timeSinceLastRequest = DateTime.now().difference(_lastPasswordResetRequest!);
+      if (timeSinceLastRequest.inSeconds < AppConstants.passwordResetThrottleSeconds) {
+        final remainingSeconds = AppConstants.passwordResetThrottleSeconds - timeSinceLastRequest.inSeconds;
+        setState(() {
+          _authError = 'Please wait $remainingSeconds seconds before requesting another reset';
+        });
+        return;
+      }
+    }
+    
+    setState(() {
+      _isLoading = true;
+      _authError = null;
+    });
     
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.resetPassword(email);
+      _lastPasswordResetRequest = DateTime.now();
       
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        // Always show success message (security best practice - don't reveal if email exists)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Password reset email sent! Check your inbox.'),
+            content: Text('If an account exists with this email, a password reset link has been sent.'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        setState(() {
+          _isLoading = false;
+          _authError = 'Unable to process password reset. Please try again.';
+        });
       }
     }
   }
@@ -380,7 +413,14 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                 if (_isSignUp && _passwordController.text.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: _buildPasswordStrength(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildPasswordStrength(),
+                        const SizedBox(height: 8),
+                        _buildPasswordRequirements(),
+                      ],
+                    ),
                   ),
                 
                 const SizedBox(height: 16),
@@ -463,10 +503,10 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                                     ),
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => const TermsScreen(),
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => Dialog.fullscreen(
+                                            child: const TermsScreen(),
                                           ),
                                         );
                                       },
@@ -481,10 +521,10 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                                     ),
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => const PrivacyPolicyScreen(),
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => Dialog.fullscreen(
+                                            child: const PrivacyPolicyScreen(),
                                           ),
                                         );
                                       },
@@ -696,5 +736,47 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
       ],
     );
   }
+  
+  Widget _buildPasswordRequirements() {
+    final password = _passwordController.text;
+    final hasMinLength = password.length >= 8;
+    final hasUppercase = password.contains(RegExp(r'[A-Z]'));
+    final hasLowercase = password.contains(RegExp(r'[a-z]'));
+    final hasNumber = password.contains(RegExp(r'[0-9]'));
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRequirementRow('At least 8 characters', hasMinLength),
+        _buildRequirementRow('Uppercase letter (A-Z)', hasUppercase),
+        _buildRequirementRow('Lowercase letter (a-z)', hasLowercase),
+        _buildRequirementRow('Number (0-9)', hasNumber),
+      ],
+    );
+  }
+  
+  Widget _buildRequirementRow(String requirement, bool met) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Icon(
+            met ? Icons.check_circle : Icons.circle_outlined,
+            size: 16,
+            color: met ? Colors.green : Colors.grey,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            requirement,
+            style: TextStyle(
+              fontSize: 12,
+              color: met ? Colors.green : Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
 

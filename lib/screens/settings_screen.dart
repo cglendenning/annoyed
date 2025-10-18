@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -17,6 +19,116 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool _analyticsEnabled = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadAnalyticsPreference();
+  }
+  
+  Future<void> _loadAnalyticsPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _analyticsEnabled = prefs.getBool('analytics_enabled') ?? true;
+    });
+  }
+  
+  Future<void> _saveAnalyticsPreference(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('analytics_enabled', enabled);
+    if (enabled) {
+      await AnalyticsService.logEvent('analytics_enabled');
+    }
+  }
+  
+  Future<void> _exportData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (!authProvider.isAuthenticated) {
+      _showErrorDialog(
+        'Sign In Required',
+        'You must be signed in to export your data.',
+      );
+      return;
+    }
+    
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    
+    try {
+      final uid = authProvider.userId!;
+      
+      // Fetch all user data
+      final annoyances = await FirebaseService.getUserAnnoyances(uid);
+      final coachings = await FirebaseService.getAllCoachings(uid: uid);
+      
+      // Format as JSON
+      final exportData = {
+        'export_date': DateTime.now().toIso8601String(),
+        'user_id': uid,
+        'annoyances': annoyances.map((a) => {
+          'id': a.id,
+          'timestamp': a.timestamp.toIso8601String(),
+          'transcript': a.transcript,
+          'category': a.category,
+          'trigger': a.trigger,
+        }).toList(),
+        'coachings': coachings,
+      };
+      
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading
+        
+        // Show export data in a dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Export Data'),
+            content: SingleChildScrollView(
+              child: SelectableText(
+                const JsonEncoder.withIndent('  ').convert(exportData),
+                style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(
+                    text: const JsonEncoder.withIndent('  ').convert(exportData),
+                  ));
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Data copied to clipboard'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                child: const Text('Copy to Clipboard'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading
+        _showErrorDialog('Export Failed', 'Unable to export data: ${e.toString()}');
+      }
+    }
+  }
+  
   Future<void> _resetOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_completed', false);
@@ -77,6 +189,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirm == true) {
+      // Haptic feedback for destructive action
+      HapticFeedback.heavyImpact();
+      
       // Show loading dialog
       if (mounted) {
         showDialog(
@@ -91,12 +206,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         // This deletes everything - account, data, etc.
         await authProvider.deleteAccount();
-        
+
         if (mounted) {
           Navigator.of(context).pop(); // Close loading dialog
-          _showSuccessDialog(
-            'Data Deleted',
-            'All your data has been permanently deleted from our systems.',
+          // Navigate to onboarding after successful deletion
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check_circle_outline,
+                      color: Colors.green.shade700,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Data Deleted',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'All your data has been permanently deleted from our systems.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // Navigate to root - onboarding will show automatically
+                    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
           );
         }
       } catch (e) {
@@ -436,6 +600,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('See the tutorial and permission screens again'),
             trailing: const Icon(Icons.refresh),
             onTap: _resetOnboarding,
+          ),
+
+          const Divider(height: 32),
+
+          // Data & Privacy
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'Data & Privacy',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Export My Data'),
+            subtitle: const Text('Download all your data in JSON format'),
+            leading: const Icon(Icons.download),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: _exportData,
+          ),
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, _) {
+              return SwitchListTile(
+                title: const Text('Analytics'),
+                subtitle: const Text('Help us improve the app'),
+                secondary: const Icon(Icons.analytics_outlined),
+                value: _analyticsEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    _analyticsEnabled = value;
+                  });
+                  _saveAnalyticsPreference(value);
+                },
+              );
+            },
           ),
 
           const Divider(height: 32),
