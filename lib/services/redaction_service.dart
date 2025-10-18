@@ -61,24 +61,18 @@ class RedactionService {
   }
   
   /// Sanitize text to be JSON-safe when used in API calls
+  /// Only sanitize control characters - keep the rest readable
   static String _sanitizeForJSON(String text) {
-    // Replace control characters with spaces
-    text = text.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), ' ');
-    
-    // Replace curly braces with parentheses (they break JSON structure in prompts)
-    text = text.replaceAll('{', '(').replaceAll('}', ')');
-    
-    // Replace backslashes with forward slashes (avoid escape issues)
-    text = text.replaceAll('\\', '/');
-    
-    // Normalize quotes to single quotes (avoid JSON string termination)
-    text = text.replaceAll('"', "'");
+    // Replace control characters (except newlines which are common)
+    text = text.replaceAll(RegExp(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]'), ' ');
     
     // Remove any null bytes
     text = text.replaceAll('\u0000', '');
     
-    // Collapse multiple spaces
-    text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    // Normalize excessive whitespace but keep single newlines
+    text = text.replaceAll(RegExp(r'[ \t]+'), ' ');
+    text = text.replaceAll(RegExp(r'\n\n+'), '\n\n');
+    text = text.trim();
     
     return text;
   }
