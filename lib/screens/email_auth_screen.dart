@@ -37,6 +37,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
   bool _marketingOptIn = false;
   bool _agreedToTerms = false;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+  String? _authError; // Inline error message for auth failures
   
   @override
   void initState() {
@@ -45,6 +46,13 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     
     // Add listeners to update password strength indicator in real-time
     _passwordController.addListener(() {
+      // Clear auth error when user starts typing
+      if (_authError != null) {
+        setState(() {
+          _authError = null;
+        });
+      }
+      
       if (_isSignUp) {
         setState(() {});
         // Also validate confirm password if user has started typing
@@ -58,6 +66,15 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         // Enable auto-validation once user starts typing in confirm password
         setState(() {
           _autovalidateMode = AutovalidateMode.always;
+        });
+      }
+    });
+    
+    // Clear auth error when user starts typing in email field
+    _emailController.addListener(() {
+      if (_authError != null) {
+        setState(() {
+          _authError = null;
         });
       }
     });
@@ -140,7 +157,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Authentication failed';
+        String errorMessage = 'Oops! Invalid login';
         
         if (e.toString().contains('email-already-in-use')) {
           errorMessage = 'This email is already registered. Try signing in.';
@@ -150,18 +167,12 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           errorMessage = 'Password is too weak';
         } else if (e.toString().contains('user-not-found')) {
           errorMessage = 'No account found with this email';
-        } else if (e.toString().contains('wrong-password')) {
-          errorMessage = 'Incorrect password';
+        } else if (e.toString().contains('wrong-password') || e.toString().contains('invalid-credential')) {
+          errorMessage = 'Oops! Invalid login';
         }
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
-        
         setState(() {
+          _authError = errorMessage;
           _isLoading = false;
         });
       }
@@ -266,6 +277,50 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
               ),
                 
                 const SizedBox(height: 40),
+                
+                // Auth error display
+                if (_authError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.red.shade200,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.bolt_outlined,
+                            color: Colors.red,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _authError!,
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
                 
                 // Email field
                 TextFormField(
@@ -576,6 +631,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                               _agreedToTerms = false;
                               _marketingOptIn = false;
                               _autovalidateMode = AutovalidateMode.disabled;
+                              _authError = null; // Clear any previous auth errors
                             });
                           },
                     child: Text(
