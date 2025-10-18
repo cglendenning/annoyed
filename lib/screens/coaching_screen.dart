@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/annoyance_provider.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
 import '../services/paywall_service.dart';
@@ -10,7 +11,9 @@ import 'paywall_screen.dart';
 import 'coaching_history_screen.dart';
 
 class CoachingScreen extends StatefulWidget {
-  const CoachingScreen({super.key});
+  final bool forceRegenerate;
+  
+  const CoachingScreen({super.key, this.forceRegenerate = false});
 
   @override
   State<CoachingScreen> createState() => _CoachingScreenState();
@@ -40,7 +43,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
       duration: const Duration(milliseconds: 2000),
     )..repeat();
     _startLoadingMessages();
-    _loadCoaching();
+    _loadCoaching(forceRegenerate: widget.forceRegenerate);
   }
   
   @override
@@ -62,8 +65,8 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
     });
   }
 
-  Future<void> _loadCoaching() async {
-    print('[CoachingScreen] Loading coaching at ${DateTime.now()}');
+  Future<void> _loadCoaching({bool forceRegenerate = false}) async {
+    print('[CoachingScreen] Loading coaching at ${DateTime.now()}, forceRegenerate: $forceRegenerate');
     
     setState(() {
       _isLoading = true;
@@ -82,7 +85,81 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
     }
 
     try {
-      print('[CoachingScreen] Calling FirebaseService.generateCoaching for uid: $uid');
+      // Check if we should generate a new coaching based on annoyances since last coaching
+      if (!forceRegenerate) {
+        final annoyanceProvider = Provider.of<AnnoyanceProvider>(context, listen: false);
+        
+        // Ensure annoyances are loaded
+        await annoyanceProvider.loadAnnoyances(uid);
+        
+        final coachings = await FirebaseService.getAllCoachings(uid: uid);
+        
+        bool shouldGenerateNew = false;
+        
+        print('[CoachingScreen] DEBUG - Total annoyances loaded: ${annoyanceProvider.annoyances.length}');
+        print('[CoachingScreen] DEBUG - Total coachings: ${coachings.length}');
+        
+        if (coachings.isEmpty) {
+          // No coaching yet - generate first one if there's at least 1 annoyance
+          if (annoyanceProvider.annoyances.isNotEmpty) {
+            shouldGenerateNew = true;
+            print('[CoachingScreen] First coaching needed');
+          }
+        } else {
+          // Check annoyances created after the most recent coaching
+          final mostRecentCoaching = coachings.first;
+          final coachingTimestamp = mostRecentCoaching['timestamp'] as DateTime?;
+          
+          print('[CoachingScreen] DEBUG - Most recent coaching timestamp: $coachingTimestamp');
+          
+          if (coachingTimestamp != null) {
+            // Count annoyances with timestamp after the most recent coaching
+            final newAnnoyances = annoyanceProvider.annoyances
+                .where((annoyance) => annoyance.timestamp.isAfter(coachingTimestamp))
+                .toList();
+            
+            print('[CoachingScreen] DEBUG - Annoyances after coaching timestamp:');
+            for (var annoyance in newAnnoyances.take(5)) {
+              print('  - ${annoyance.timestamp}: ${annoyance.transcript.substring(0, annoyance.transcript.length > 30 ? 30 : annoyance.transcript.length)}...');
+            }
+            
+            final newAnnoyancesSinceCoaching = newAnnoyances.length;
+            print('[CoachingScreen] DEBUG - New annoyances since coaching: $newAnnoyancesSinceCoaching');
+            
+            if (newAnnoyancesSinceCoaching >= 5) {
+              shouldGenerateNew = true;
+              print('[CoachingScreen] ✓ New coaching due: $newAnnoyancesSinceCoaching new annoyances since last coaching');
+            } else {
+              print('[CoachingScreen] ✗ Not enough new annoyances yet ($newAnnoyancesSinceCoaching/5)');
+            }
+          }
+        }
+        
+        if (shouldGenerateNew) {
+          print('[CoachingScreen] Forcing regeneration due to threshold');
+          forceRegenerate = true;
+        } else if (coachings.isNotEmpty) {
+          // Use the most recent coaching
+          final mostRecent = coachings.first;
+          print('[CoachingScreen] Loaded most recent coaching from history');
+          
+          if (mounted) {
+            setState(() {
+              _coaching = {
+                'recommendation': mostRecent['recommendation'],
+                'type': mostRecent['type'],
+                'explanation': mostRecent['explanation'] ?? '',
+              };
+              _isLoading = false;
+            });
+            await AnalyticsService.logEvent('coaching_viewed');
+          }
+          return;
+        }
+      }
+      
+      // If no coaching exists or forced regenerate, generate a new one
+      print('[CoachingScreen] Generating new coaching for uid: $uid');
       final result = await FirebaseService.generateCoaching(uid: uid);
       print('[CoachingScreen] Received result: ${result['recommendation']?.substring(0, 50)}...');
       
@@ -250,7 +327,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                   _showExplanation = false;
                   _loadingMessageIndex = 0;
                 });
-                await _loadCoaching();
+                await _loadCoaching(forceRegenerate: true);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

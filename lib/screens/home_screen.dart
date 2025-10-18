@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../providers/auth_provider.dart';
 import '../providers/annoyance_provider.dart';
 import '../services/speech_service.dart';
+import '../services/firebase_service.dart';
 import '../widgets/tap_to_record_button.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/animated_gradient_container.dart';
@@ -189,13 +190,14 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }
           }
-          // Auto-generate coaching after 1st annoyance and every 5th thereafter (1, 5, 10, 15, 20, etc.)
-          else if (annoyanceCount == 1 || (annoyanceCount % 5 == 0 && annoyanceCount > 0)) {
+          // Auto-generate coaching: after 1st annoyance, then every 5 NEW annoyances after that
+          // Pattern: annoyance #1 -> coaching #1, annoyance #6 -> coaching #2, annoyance #11 -> coaching #3, etc.
+          else if (await _shouldGenerateNewCoaching(uid, annoyanceCount)) {
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const CoachingScreen(),
+                  builder: (context) => CoachingScreen(forceRegenerate: true),
                 ),
               );
             }
@@ -216,6 +218,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     await _saveAnnoyance(text);
     _textController.clear();
+  }
+  
+  Future<bool> _shouldGenerateNewCoaching(String uid, int currentAnnoyanceCount) async {
+    // Get count of existing coachings
+    final coachings = await FirebaseService.getAllCoachings(uid: uid);
+    final coachingCount = coachings.length;
+    
+    // First coaching should happen at annoyance #1
+    if (coachingCount == 0 && currentAnnoyanceCount == 1) {
+      return true;
+    }
+    
+    // After that, generate coaching every 5 annoyances
+    // Coaching #1 at annoyance 1, #2 at annoyance 6, #3 at annoyance 11, etc.
+    // Formula: next coaching should be at annoyance count = 1 + (coachingCount * 5)
+    final nextCoachingAt = 1 + (coachingCount * 5);
+    
+    return currentAnnoyanceCount == nextCoachingAt;
   }
 
   @override
