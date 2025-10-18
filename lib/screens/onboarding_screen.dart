@@ -291,7 +291,9 @@ class _IntroPage extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const EmailAuthScreen(),
+                  builder: (context) => const EmailAuthScreen(
+                    initialMode: AuthMode.signIn,
+                  ),
                 ),
               );
             },
