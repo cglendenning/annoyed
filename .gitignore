@@ -50,9 +50,6 @@ app.*.map.json
 .env.local
 .env.*.local
 
-# Secrets
-lib/secrets.dart
-
 # Firebase
 **/firebase_options.dart
 **/google-services.json
