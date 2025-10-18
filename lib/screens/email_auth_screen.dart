@@ -151,9 +151,10 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         );
       }
       
-      // Navigation handled by AuthGate - pop this screen on success
+      // Navigation handled by AuthGate - clear stack and let AuthGate route
       if (mounted) {
-        Navigator.of(context).pop();
+        // Pop all screens and return to root, letting AuthGate handle routing
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {
