@@ -297,7 +297,7 @@ class FirebaseService {
     try {
       final snapshot = await _firestore
           .collection('coaching')
-          .where('uid', '==', uid)
+          .where('uid', isEqualTo: uid)
           .orderBy('ts', descending: true)
           .get();
       
