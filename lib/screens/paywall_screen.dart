@@ -17,33 +17,60 @@ class PaywallScreen extends StatefulWidget {
 
 class _PaywallScreenState extends State<PaywallScreen> {
   bool _isLoading = false;
-  Offerings? _offerings;
+  List<StoreProduct> _products = [];
+  String? _errorDetails;
 
   @override
   void initState() {
     super.initState();
-    _loadOfferings();
+    _loadProducts();
     AnalyticsService.logPaywallView();
   }
 
-  Future<void> _loadOfferings() async {
+  Future<void> _loadProducts() async {
+    setState(() {
+      _isLoading = true;
+      _errorDetails = null;
+    });
+    
     try {
-      final offerings = await Purchases.getOfferings();
+      debugPrint('[RevenueCat] Loading products directly...');
+      final products = await Purchases.getProducts(
+        ['com.cglendenning.annoyed.premium.monthly', 'com.cglendenning.annoyed.premium.annual'],
+        type: PurchaseType.subs,
+      );
+      debugPrint('[RevenueCat] Products loaded: ${products.length}');
+      for (var product in products) {
+        debugPrint('[RevenueCat] - ${product.identifier}: ${product.priceString}');
+      }
+      
+      if (products.isEmpty) {
+        setState(() {
+          _errorDetails = 'No products found. Check:\n• Products exist in App Store Connect\n• Products have metadata\n• Bundle ID matches';
+        });
+      }
+      
       setState(() {
-        _offerings = offerings;
+        _products = products;
+        _isLoading = false;
       });
-    } catch (e) {
-      debugPrint('Error loading offerings: $e');
+    } catch (e, stackTrace) {
+      debugPrint('[RevenueCat] Error loading products: $e');
+      debugPrint('[RevenueCat] Stack trace: $stackTrace');
+      setState(() {
+        _errorDetails = 'Error: ${e.toString()}';
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _purchasePackage(Package package) async {
+  Future<void> _purchaseProduct(StoreProduct product) async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final customerInfo = await Purchases.purchasePackage(package);
+      final customerInfo = await Purchases.purchaseStoreProduct(product);
       
       // Check if user is now premium
       if (customerInfo.entitlements.all['premium']?.isActive == true) {
@@ -244,17 +271,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   const SizedBox(height: 32),
 
                   // Pricing
-                  if (_offerings?.current?.availablePackages.isNotEmpty ??
-                      false) ...[
-                    ...(_offerings!.current!.availablePackages.map((package) {
-                      final isAnnual =
-                          package.packageType == PackageType.annual;
+                  if (_products.isNotEmpty) ...[
+                    ...(_products.map((product) {
+                      final isAnnual = product.identifier.contains('annual');
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _PricingCard(
-                          package: package,
+                        child: _ProductCard(
+                          product: product,
                           isRecommended: isAnnual,
-                          onTap: () => _purchasePackage(package),
+                          onTap: () => _purchaseProduct(product),
                         ),
                       );
                     })),
@@ -271,15 +296,33 @@ class _PaywallScreenState extends State<PaywallScreen> {
                               'Unable to load subscription options',
                               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Please check your internet connection and try again. If the problem persists, contact support.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
+                            if (_errorDetails != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _errorDetails!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ] else ...[
+                              Text(
+                                'Check console logs for details',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey.shade600),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
                             ElevatedButton(
-                              onPressed: _loadOfferings,
+                              onPressed: _loadProducts,
                               child: const Text('Retry'),
                             ),
                           ],
@@ -362,13 +405,13 @@ class _FeatureTile extends StatelessWidget {
   }
 }
 
-class _PricingCard extends StatelessWidget {
-  final Package package;
+class _ProductCard extends StatelessWidget {
+  final StoreProduct product;
   final bool isRecommended;
   final VoidCallback onTap;
 
-  const _PricingCard({
-    required this.package,
+  const _ProductCard({
+    required this.product,
     required this.isRecommended,
     required this.onTap,
   });
@@ -398,7 +441,7 @@ class _PricingCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    package.storeProduct.title,
+                    product.title,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -429,7 +472,7 @@ class _PricingCard extends StatelessWidget {
               ),
             ),
             Text(
-              package.storeProduct.priceString,
+              product.priceString,
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
