@@ -447,96 +447,236 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 24),
 
-              // Coaching button - only show if user has entries
-              if (!_isRecording && !_isSaving && annoyanceProvider.annoyances.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: AnimatedGradientContainer(
-                    colors: const [
-                      AppColors.primaryTealLight,
-                      AppColors.primaryTeal,
-                      AppColors.accentCoral,
-                    ],
-                    duration: const Duration(seconds: 4),
-                    child: Container(
+              // Coaching section - only show if user has entries
+              if (!_isRecording && !_isSaving && annoyanceProvider.annoyances.isNotEmpty) ...[
+                // Divider with text
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.grey.shade200,
+                              Colors.grey.shade400,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'YOUR INSIGHTS',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.grey.shade400,
+                              Colors.grey.shade200,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Enhanced Coaching button
+                Stack(
+                  children: [
+                    // Glow effect
+                    Container(
                       width: double.infinity,
+                      height: 120,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0x660F766E), // primaryTeal at 40% opacity
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                            color: AppColors.accentCoral.withOpacity(0.3),
+                            blurRadius: 40,
+                            spreadRadius: -5,
+                            offset: const Offset(0, 10),
+                          ),
+                          BoxShadow(
+                            color: AppColors.primaryTeal.withOpacity(0.2),
+                            blurRadius: 30,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const CoachingScreen(),
+                    ),
+                    
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: AnimatedGradientContainer(
+                        colors: const [
+                          AppColors.primaryTealLight,
+                          AppColors.primaryTeal,
+                          AppColors.accentCoral,
+                          AppColors.primaryTeal,
+                        ],
+                        duration: const Duration(seconds: 5),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const CoachingScreen(),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Row(
+                                  children: [
+                                    // Premium icon with sparkle
+                                    Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(14),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.25),
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.white.withOpacity(0.3),
+                                                blurRadius: 15,
+                                                spreadRadius: 2,
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.auto_awesome,
+                                            color: Colors.white,
+                                            size: 32,
+                                          ),
+                                        ),
+                                        // Sparkle badge
+                                        Positioned(
+                                          top: -4,
+                                          right: -4,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: AppColors.accentCoral,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.star,
+                                              color: Colors.white,
+                                              size: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    const SizedBox(width: 20),
+                                    
+                                    // Text content
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Text(
+                                                'Get Your Coaching',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: -0.5,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 3,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white.withOpacity(0.25),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: const Text(
+                                                  'AI',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          const Text(
+                                            'Breakthrough insights waiting for you ✨',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              height: 1.3,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    
+                                    // Arrow with glow
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.arrow_forward,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0x33FFFFFF), // white at 20% opacity
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.lightbulb,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                const Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Get Your Coaching',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Personalized insights from your patterns',
-                                        style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.arrow_forward_ios,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ],
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-
-              if (!_isRecording && !_isSaving && annoyanceProvider.annoyances.isNotEmpty)
+                
                 const SizedBox(height: 24),
+              ],
 
               // Recent entries
               if (annoyanceProvider.todayAnnoyances.isNotEmpty) ...[
