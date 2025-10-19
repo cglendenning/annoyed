@@ -14,7 +14,7 @@ class CategoryChip extends StatelessWidget {
         return const Color(0xFFE74C3C);
       case 'Environment':
         return const Color(0xFF3498DB);
-      case 'Systems Debt':
+      case 'Life Systems':
         return const Color(0xFFF39C12);
       case 'Communication':
         return const Color(0xFF9B59B6);

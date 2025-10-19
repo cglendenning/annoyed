@@ -12,6 +12,7 @@ import 'about_screen.dart';
 import 'terms_screen.dart';
 import 'paywall_screen.dart';
 import 'email_auth_screen.dart';
+import 'subscription_status_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -22,11 +23,36 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _analyticsEnabled = true;
+  bool _isPremium = false;
+  bool _loadingSubscription = true;
   
   @override
   void initState() {
     super.initState();
     _loadAnalyticsPreference();
+    _checkSubscriptionStatus();
+  }
+  
+  Future<void> _checkSubscriptionStatus() async {
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      
+      final hasActiveEntitlement = customerInfo.entitlements.all['premium']?.isActive == true;
+      final hasActiveSub = customerInfo.activeSubscriptions.isNotEmpty;
+      
+      if (mounted) {
+        setState(() {
+          _isPremium = hasActiveEntitlement || hasActiveSub;
+          _loadingSubscription = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingSubscription = false;
+        });
+      }
+    }
   }
   
   Future<void> _loadAnalyticsPreference() async {
@@ -447,19 +473,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          ListTile(
-            title: const Text('Upgrade to Premium'),
-            subtitle: const Text('Unlock all premium features'),
-            leading: const Icon(Icons.stars, color: Color(0xFF0F766E)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const PaywallScreen(),
-                ),
-              );
-            },
-          ),
+          if (_loadingSubscription)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          if (!_isPremium && !_loadingSubscription)
+            ListTile(
+              title: const Text('Upgrade to Premium'),
+              subtitle: const Text('Unlock all premium features'),
+              leading: const Icon(Icons.stars, color: Color(0xFF0F766E)),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const PaywallScreen(),
+                  ),
+                );
+                // Refresh subscription status when returning
+                _checkSubscriptionStatus();
+              },
+            ),
+          if (_isPremium && !_loadingSubscription)
+            ListTile(
+              title: const Text('Subscription Status'),
+              subtitle: const Text('Manage your premium subscription'),
+              leading: const Icon(Icons.verified, color: Colors.green),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SubscriptionStatusScreen(),
+                  ),
+                );
+                // Refresh subscription status when returning
+                _checkSubscriptionStatus();
+              },
+            ),
           ListTile(
             title: const Text('Restore Purchases'),
             subtitle: const Text('Already subscribed? Restore your access'),

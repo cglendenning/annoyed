@@ -81,7 +81,7 @@ class Annoyance {
 class AnnoyanceCategory {
   static const String boundaries = 'Boundaries';
   static const String environment = 'Environment';
-  static const String systemsDebt = 'Systems Debt';
+  static const String systemsDebt = 'Life Systems';
   static const String communication = 'Communication';
   static const String energy = 'Energy';
 

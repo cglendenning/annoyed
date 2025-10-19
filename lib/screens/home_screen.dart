@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../providers/annoyance_provider.dart';
 import '../services/speech_service.dart';
@@ -33,11 +34,26 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSaving = false;
   String _transcript = '';
   bool _hasShownPatternReport = false;
+  bool _isPremium = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _checkSubscriptionStatus();
+  }
+  
+  Future<void> _checkSubscriptionStatus() async {
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      final hasActiveEntitlement = customerInfo.entitlements.all['premium']?.isActive == true;
+      final hasActiveSub = customerInfo.activeSubscriptions.isNotEmpty;
+      setState(() {
+        _isPremium = hasActiveEntitlement || hasActiveSub;
+      });
+    } catch (e) {
+      // Silently fail
+    }
   }
 
   Future<void> _loadData() async {
@@ -312,17 +328,52 @@ class _HomeScreenState extends State<HomeScreen> {
           else
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
-              child: ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  colors: [AppColors.primaryTeal, AppColors.accentCoral],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ).createShader(bounds),
-                child: const Icon(
-                  Icons.account_circle,
-                  color: Colors.white,
-                  size: 28,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_isPremium)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppColors.primaryTeal, AppColors.accentCoral],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.stars, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text(
+                              'Premium',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: [AppColors.primaryTeal, AppColors.accentCoral],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    child: const Icon(
+                      Icons.account_circle,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ],
               ),
             ),
           IconButton(
