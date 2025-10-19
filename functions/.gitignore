@@ -1,5 +1,9 @@
 node_modules/
 
+# Service account keys (sensitive - never commit!)
+service-account-key*.json
+*-service-account.json
+
 
 
 
