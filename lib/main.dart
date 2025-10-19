@@ -25,6 +25,15 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  
+  // Set status bar to dark text (for light backgrounds)
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark, // Dark icons for iOS
+      statusBarBrightness: Brightness.light, // Light status bar for Android
+    ),
+  );
 
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -94,6 +103,11 @@ class AnnoyedApp extends StatelessWidget {
             backgroundColor: Colors.transparent,
             elevation: 0,
             foregroundColor: Colors.black87,
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark, // Dark icons/text
+              statusBarBrightness: Brightness.light, // For iOS
+            ),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
