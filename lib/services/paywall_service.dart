@@ -23,7 +23,7 @@ class PaywallService {
 
   /// Check if user should see paywall before using AI features
   static Future<bool> shouldShowPaywall(String uid, bool isPro) async {
-    // If already pro, check against hard limit
+    // If already premium, check against hard limit
     final status = await getCostStatus(uid);
     
     // If they can't use AI at all, show paywall/limit message

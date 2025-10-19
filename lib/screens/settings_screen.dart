@@ -448,7 +448,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           ListTile(
-            title: const Text('Upgrade to Pro'),
+            title: const Text('Upgrade to Premium'),
             subtitle: const Text('Unlock all premium features'),
             leading: const Icon(Icons.stars, color: Color(0xFF0F766E)),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -479,7 +479,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 final customerInfo = await Purchases.restorePurchases();
                 Navigator.pop(context); // Close loading dialog
                 
-                if (customerInfo.entitlements.all['pro']?.isActive == true) {
+                if (customerInfo.entitlements.all['premium']?.isActive == true) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(

@@ -26,26 +26,26 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   // Load environment variables
   await dotenv.load(fileName: ".env");
-  
+
   // Validate required environment variables
   final requiredKeys = Platform.isAndroid 
       ? ['REVENUECAT_ANDROID_KEY']
       : Platform.isIOS 
           ? ['REVENUECAT_IOS_KEY']
           : <String>[];
-  
+
   for (final key in requiredKeys) {
     if (dotenv.env[key] == null || dotenv.env[key]!.isEmpty) {
       throw Exception('Missing required environment variable: $key. Please check your .env file.');
     }
   }
-
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
   // Initialize RevenueCat
   await initPlatformState();

@@ -45,8 +45,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
     try {
       final customerInfo = await Purchases.purchasePackage(package);
       
-      // Check if user is now pro
-      if (customerInfo.entitlements.all['pro']?.isActive == true) {
+      // Check if user is now premium
+      if (customerInfo.entitlements.all['premium']?.isActive == true) {
         // Update user preferences
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final prefsProvider =
@@ -65,7 +65,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
           Navigator.of(context).pop(true); // Return true to indicate success
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Welcome to Annoyed Pro!'),
+              content: Text('Welcome to Annoyed Premium!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -97,7 +97,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     try {
       final customerInfo = await Purchases.restorePurchases();
       
-      if (customerInfo.entitlements.all['pro']?.isActive == true) {
+      if (customerInfo.entitlements.all['premium']?.isActive == true) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final prefsProvider =
             Provider.of<PreferencesProvider>(context, listen: false);
@@ -148,7 +148,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Annoyed Pro'),
+        title: const Text('Annoyed Premium'),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _restorePurchases,
@@ -192,7 +192,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ],
                   
                   Text(
-                    widget.message != null ? 'Subscribe to Continue' : 'Upgrade to Pro',
+                    widget.message != null ? 'Subscribe to Continue' : 'Upgrade to Premium',
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -259,33 +259,32 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       );
                     })),
                   ] else ...[
-                    // Fallback pricing if RevenueCat isn't configured yet
-                    _FallbackPricingCard(
-                      title: 'Annual',
-                      price: '\$24.99/year',
-                      isRecommended: true,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'RevenueCat not configured. Please set up in-app purchases.'),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _FallbackPricingCard(
-                      title: 'Monthly',
-                      price: '\$3.99/month',
-                      isRecommended: false,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'RevenueCat not configured. Please set up in-app purchases.'),
-                          ),
-                        );
-                      },
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline, size: 64, color: Colors.red),
+                            SizedBox(height: 16),
+                            Text(
+                              'Unable to load subscription options',
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Please check your internet connection and try again. If the problem persists, contact support.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadOfferings,
+                              child: Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
 
