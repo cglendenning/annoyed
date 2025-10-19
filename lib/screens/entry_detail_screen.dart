@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/annoyance.dart';
 import '../providers/auth_provider.dart';
 import '../providers/annoyance_provider.dart';
+import '../services/analytics_service.dart';
 import '../widgets/category_chip.dart';
 import 'package:intl/intl.dart';
 
@@ -54,10 +55,17 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         transcript: _transcriptController.text,
         category: _selectedCategory,
         trigger: _triggerController.text,
+        timestamp: DateTime.now(), // Update timestamp so it counts as "new" for coaching
         modified: true,
       );
 
       await annoyanceProvider.updateAnnoyance(updatedAnnoyance, uid);
+      
+      // Log analytics for entry edit (timestamp updated = counts as new for coaching)
+      await AnalyticsService.logEvent('annoyance_edited', meta: {
+        'category': _selectedCategory,
+        'had_trigger': _triggerController.text.isNotEmpty,
+      });
 
       if (mounted) {
         setState(() {
@@ -66,8 +74,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Changes saved'),
+            content: Text('Changes saved.'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
         Navigator.of(context).pop();
