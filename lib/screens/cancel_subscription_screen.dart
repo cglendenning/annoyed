@@ -436,4 +436,3 @@ class _CancelSubscriptionScreenState extends State<CancelSubscriptionScreen>
   }
 }
 
-

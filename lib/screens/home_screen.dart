@@ -17,7 +17,7 @@ import 'settings_screen.dart';
 import 'entry_detail_screen.dart';
 import 'pattern_report_screen.dart';
 import 'coaching_screen.dart';
-import 'signup_prompt_screen.dart';
+import 'auth_gate_screen.dart';
 import 'email_auth_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -63,8 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final uid = authProvider.userId;
     if (uid != null) {
-      // Start listening to real-time updates
-      annoyanceProvider.startListening(uid);
+      await annoyanceProvider.loadAnnoyances(uid);
 
       // Check if we should show pattern report (only once per session)
       final patternReport = annoyanceProvider.getPatternReport();
@@ -231,13 +230,13 @@ class _HomeScreenState extends State<HomeScreen> {
           final annoyanceCount = annoyanceProvider.annoyances.length;
           final isAnonymous = authProvider.user?.isAnonymous ?? false;
           
-          // Check if user has reached the threshold and is still anonymous (show sign-up prompt)
+          // Check if user has reached the threshold and is still anonymous (show auth gate)
           if (annoyanceCount >= AppConstants.annoyancesForAuthGate && isAnonymous) {
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const SignUpPromptScreen(
+                  builder: (context) => const AuthGateScreen(
                     message: 'You\'re on a roll! 🎉',
                     subtitle: 'You\'ve recorded 5 annoyances. Sign up now to unlock coaching insights and keep your progress forever!',
                   ),

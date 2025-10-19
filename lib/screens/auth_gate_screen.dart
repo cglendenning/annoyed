@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/animated_gradient_container.dart';
 import '../utils/app_colors.dart';
 import 'email_auth_screen.dart';
 
 /// Screen shown after 5th annoyance to prompt email sign-up
-class SignUpPromptScreen extends StatelessWidget {
+class AuthGateScreen extends StatelessWidget {
   final String message;
   final String? subtitle;
   
-  const SignUpPromptScreen({
+  const AuthGateScreen({
     super.key,
     this.message = 'Unlock Full Features!',
     this.subtitle,

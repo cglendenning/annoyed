@@ -203,4 +203,3 @@ class PatternReportScreen extends StatelessWidget {
 
 
 
-

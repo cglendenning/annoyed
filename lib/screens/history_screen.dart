@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../providers/auth_provider.dart';
 import '../providers/annoyance_provider.dart';
 import '../models/annoyance.dart';
 import '../widgets/category_chip.dart';
@@ -13,10 +14,13 @@ class HistoryScreen extends StatelessWidget {
     BuildContext context,
     Annoyance annoyance,
   ) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final annoyanceProvider =
         Provider.of<AnnoyanceProvider>(context, listen: false);
 
-    await annoyanceProvider.deleteAnnoyance(annoyance.id);
+    final uid = authProvider.userId;
+    if (uid != null) {
+      await annoyanceProvider.deleteAnnoyance(annoyance.id, uid);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../providers/annoyance_provider.dart';
+import '../providers/suggestion_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -8,11 +10,16 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final annoyanceProvider = Provider.of<AnnoyanceProvider>(context);
+    final suggestionProvider = Provider.of<SuggestionProvider>(context);
 
     final annoyances = annoyanceProvider.annoyances;
+    final suggestions = suggestionProvider.suggestions;
 
     // Calculate metrics
     final annoyanceRate = _calculateAnnoyanceRate(annoyances);
+    final followThrough = _calculateFollowThrough(suggestions);
+    final hellYesRate = _calculateHellYesRate(suggestions);
+    final timeToAction = _calculateTimeToAction(suggestions);
     final topCategory = annoyanceProvider.getTopCategory();
     final distribution = annoyanceProvider.getCategoryDistribution();
 
@@ -97,10 +104,44 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _MetricCard(
-                    label: 'Annoyance Rate',
-                    value: '$annoyanceRate/week',
-                    trend: null,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MetricCard(
+                          label: 'Annoyance Rate',
+                          value: '$annoyanceRate/week',
+                          trend: null,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _MetricCard(
+                          label: 'Time to Action',
+                          value: timeToAction,
+                          trend: null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MetricCard(
+                          label: 'Follow-Through',
+                          value: '$followThrough%',
+                          trend: null,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _MetricCard(
+                          label: 'HELL YES Rate',
+                          value: '$hellYesRate%',
+                          trend: null,
+                        ),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 32),
@@ -151,6 +192,40 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     );
                   }),
+
+                  const SizedBox(height: 32),
+
+                  // Recent Suggestions
+                  if (suggestions.isNotEmpty) ...[
+                    const Text(
+                      'Recent Suggestions',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...suggestions.take(3).map((suggestion) {
+                      final completed = suggestion.completedTimestamp != null;
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          title: Text(
+                            suggestion.text,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            DateFormat('MMM d').format(suggestion.timestamp),
+                          ),
+                          trailing: completed
+                              ? const Icon(Icons.check_circle,
+                                  color: Colors.green)
+                              : null,
+                        ),
+                      );
+                    }),
+                  ],
                 ],
               ),
             ),
@@ -164,6 +239,41 @@ class ProfileScreen extends StatelessWidget {
     final recentCount =
         annoyances.where((a) => a.timestamp.isAfter(sevenDaysAgo)).length;
     return recentCount;
+  }
+
+  int _calculateFollowThrough(List suggestions) {
+    if (suggestions.isEmpty) return 0;
+    final completed =
+        suggestions.where((s) => s.completedTimestamp != null).length;
+    return ((completed / suggestions.length) * 100).round();
+  }
+
+  int _calculateHellYesRate(List suggestions) {
+    if (suggestions.isEmpty) return 0;
+    final hellYes =
+        suggestions.where((s) => s.resonance == 'hell_yes').length;
+    return ((hellYes / suggestions.length) * 100).round();
+  }
+
+  String _calculateTimeToAction(List suggestions) {
+    final completed =
+        suggestions.where((s) => s.completedTimestamp != null).toList();
+    if (completed.isEmpty) return '--';
+
+    // Calculate average time from suggestion to completion
+    int totalMinutes = 0;
+    for (final s in completed) {
+      final duration =
+          s.completedTimestamp!.difference(s.timestamp).inMinutes;
+      totalMinutes += duration as int;
+    }
+
+    final avgMinutes = totalMinutes ~/ completed.length;
+    if (avgMinutes < 60) {
+      return '${avgMinutes}m';
+    } else {
+      return '${(avgMinutes / 60).toStringAsFixed(0)}h';
+    }
   }
 }
 
