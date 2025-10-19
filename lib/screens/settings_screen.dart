@@ -13,6 +13,7 @@ import 'terms_screen.dart';
 import 'paywall_screen.dart';
 import 'email_auth_screen.dart';
 import 'subscription_status_screen.dart';
+import 'how_it_works_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -720,6 +721,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const ListTile(
             title: Text('Version'),
             trailing: Text('1.0.0'),
+          ),
+          ListTile(
+            title: const Text('How It Works'),
+            subtitle: const Text('Learn about categories, coaching, and more'),
+            leading: const Icon(Icons.school, color: AppColors.primaryTeal),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const HowItWorksScreen(),
+                ),
+              );
+            },
           ),
           ListTile(
             title: const Text('About Coach Craig'),

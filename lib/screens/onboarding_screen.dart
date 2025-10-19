@@ -9,6 +9,7 @@ import '../services/analytics_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/animated_gradient_container.dart';
 import 'email_auth_screen.dart';
+import 'how_it_works_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback? onComplete;
@@ -40,6 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: [
                 const _IntroPage(),
                 const _TutorialPage(),
+                const _HowItWorksPage(),
                 _SpeechRecognitionPermissionPage(
                   onPermissionGranted: () async {
                     if (!_hasRequestedSpeechPermission) {
@@ -58,14 +60,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             
             // Page indicators
-            if (_currentPage < 3)
+            if (_currentPage < 4)
               Positioned(
                 bottom: 80,
                 left: 0,
                 right: 0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (index) {
+                  children: List.generate(4, (index) {
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       width: 8,
@@ -82,7 +84,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               
             // Swipe hint
-            if (_currentPage < 3)
+            if (_currentPage < 4)
               Positioned(
                 bottom: 40,
                 left: 0,
@@ -477,6 +479,151 @@ class _TutorialPageState extends State<_TutorialPage> {
           const SizedBox(height: 100), // Space for swipe hint
         ],
       ),
+    );
+  }
+}
+
+class _HowItWorksPage extends StatelessWidget {
+  const _HowItWorksPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Spacer(),
+          const Text(
+            'How It Works',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          
+          // Quick overview
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryTealLight.withOpacity(0.2),
+                  AppColors.accentCoralLight.withOpacity(0.2),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                _buildQuickPoint(
+                  icon: Icons.mic,
+                  title: 'Record',
+                  description: 'Tap to capture annoyances',
+                  color: AppColors.primaryTeal,
+                ),
+                const SizedBox(height: 16),
+                _buildQuickPoint(
+                  icon: Icons.category,
+                  title: 'Categorize',
+                  description: 'Auto-sorted into 5 categories',
+                  color: const Color(0xFF3498DB),
+                ),
+                const SizedBox(height: 16),
+                _buildQuickPoint(
+                  icon: Icons.auto_awesome,
+                  title: 'Get Coaching',
+                  description: 'Mindset shift + Action step',
+                  color: AppColors.accentCoral,
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primaryTeal.withOpacity(0.3),
+                width: 2,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  color: AppColors.primaryTeal,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Tap "How It Works" in Settings anytime for the full guide',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const Spacer(),
+          const SizedBox(height: 100), // Space for swipe hint
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildQuickPoint({
+    required IconData icon,
+    required String title,
+    required String description,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
