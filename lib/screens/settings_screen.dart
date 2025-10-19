@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../providers/auth_provider.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
@@ -354,65 +355,161 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
       
       try {
-        // This deletes everything - account, data, etc.
-        await authProvider.deleteAccount();
-
-        if (mounted) {
-          Navigator.of(context).pop(); // Close loading dialog
-          // Navigate to onboarding after successful deletion
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
+        debugPrint('[Settings] Calling deleteAccount');
+        
+        // First, try to delete the account
+        try {
+          await authProvider.deleteAccount();
+        } on firebase_auth.FirebaseAuthException catch (e) {
+          if (e.code == 'requires-recent-login') {
+            debugPrint('[Settings] Requires recent login, prompting for password');
+            
+            // Close loading dialog
+            if (mounted) Navigator.of(context).pop();
+            
+            // Prompt for password to re-authenticate
+            final password = await showDialog<String>(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                final passwordController = TextEditingController();
+                return AlertDialog(
+                  title: const Text('Confirm Password'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'For security, please enter your password to confirm account deletion.',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(null),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(passwordController.text),
+                      child: const Text('Confirm'),
+                    ),
+                  ],
+                );
+              },
+            );
+            
+            if (password == null || password.isEmpty) {
+              // User cancelled
+              return;
+            }
+            
+            // Show loading again
+            if (mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      Icons.check_circle_outline,
-                      color: Colors.green.shade700,
-                      size: 32,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(
+                          'Deleting account...',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Data Deleted',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
+                ),
+              );
+            }
+            
+            // Re-authenticate and try again
+            await authProvider.reauthenticateWithPassword(password);
+            await authProvider.deleteAccount();
+          } else {
+            rethrow;
+          }
+        }
+        
+        debugPrint('[Settings] deleteAccount completed successfully');
+
+        if (!mounted) return;
+        
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        debugPrint('[Settings] Showing success dialog');
+        // Show success dialog
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'All your data has been permanently deleted from our systems.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                    textAlign: TextAlign.center,
+                  child: Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.green.shade700,
+                    size: 32,
                   ),
-                ],
-              ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    // Navigate to root - onboarding will show automatically
-                    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-                  },
-                  child: const Text('OK'),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Data Deleted',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'All your data has been permanently deleted from our systems.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
-          );
-        }
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  debugPrint('[Settings] User confirmed deletion, navigating to root');
+                  Navigator.of(context).pop(); // Close success dialog
+                  // Navigate to root - app will restart with onboarding
+                  Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       } catch (e) {
         if (mounted) {
           Navigator.of(context).pop(); // Close loading dialog

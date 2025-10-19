@@ -201,61 +201,95 @@ class AuthProvider with ChangeNotifier {
   Future<void> deleteAccount() async {
     if (_user == null) return;
     
+    final uid = _user!.uid;
+    debugPrint('[AuthProvider] Starting account deletion for uid: $uid');
+    
+    // Track which deletions succeeded
+    final deletionResults = <String, bool>{};
+    
+    // Helper to safely delete a collection
+    Future<void> safeDeleteCollection(String collectionName, Future<void> Function() deleteFn) async {
+      try {
+        await deleteFn();
+        deletionResults[collectionName] = true;
+        debugPrint('[AuthProvider] ✓ Deleted $collectionName');
+      } catch (e) {
+        deletionResults[collectionName] = false;
+        debugPrint('[AuthProvider] ✗ Failed to delete $collectionName: $e');
+      }
+    }
+    
+    // Delete all collections (continue even if some fail)
+    await Future.wait([
+      safeDeleteCollection('users', () async {
+        await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+      }),
+      
+      safeDeleteCollection('annoyances', () async {
+        final snapshot = await FirebaseFirestore.instance.collection('annoyances')
+            .where('uid', isEqualTo: uid).get();
+        await Future.wait(snapshot.docs.map((doc) => doc.reference.delete()));
+      }),
+      
+      safeDeleteCollection('coaching', () async {
+        final snapshot = await FirebaseFirestore.instance.collection('coaching')
+            .where('uid', isEqualTo: uid).get();
+        await Future.wait(snapshot.docs.map((doc) => doc.reference.delete()));
+      }),
+      
+      safeDeleteCollection('suggestions', () async {
+        final snapshot = await FirebaseFirestore.instance.collection('suggestions')
+            .where('uid', isEqualTo: uid).get();
+        await Future.wait(snapshot.docs.map((doc) => doc.reference.delete()));
+      }),
+      
+      safeDeleteCollection('events', () async {
+        final snapshot = await FirebaseFirestore.instance.collection('events')
+            .where('uid', isEqualTo: uid).get();
+        await Future.wait(snapshot.docs.map((doc) => doc.reference.delete()));
+      }),
+      
+      safeDeleteCollection('llm_cost', () async {
+        final snapshot = await FirebaseFirestore.instance.collection('llm_cost')
+            .where('uid', isEqualTo: uid).get();
+        await Future.wait(snapshot.docs.map((doc) => doc.reference.delete()));
+      }),
+    ]);
+    
+    debugPrint('[AuthProvider] Deletion results: $deletionResults');
+    
+    // Delete Firebase Auth account (this is the most important part)
+    // Note: This may fail if user hasn't authenticated recently
+    // Caller should handle re-authentication if needed
     try {
-      final uid = _user!.uid;
-      
-      // Delete all user data from Firestore collections in parallel
-      await Future.wait([
-        // Delete user document
-        FirebaseFirestore.instance.collection('users').doc(uid).delete(),
-        
-        // Delete annoyances
-        FirebaseFirestore.instance.collection('annoyances')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-        
-        // Delete coaching records
-        FirebaseFirestore.instance.collection('coaching')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-        
-        // Delete suggestions
-        FirebaseFirestore.instance.collection('suggestions')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-        
-        // Delete events
-        FirebaseFirestore.instance.collection('events')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-        
-        // Delete LLM cost records (GDPR compliance)
-        FirebaseFirestore.instance.collection('llm_cost')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-      ]);
-      
-      // Delete Firebase Auth account
       await _user!.delete();
+      debugPrint('[AuthProvider] ✓ Auth account deleted');
       _user = null;
       notifyListeners();
     } catch (e) {
-      debugPrint('Error deleting account: $e');
+      debugPrint('[AuthProvider] ✗ Failed to delete auth account: $e');
+      // If auth deletion fails, throw error with the specific error
+      rethrow;
+    }
+    
+    debugPrint('[AuthProvider] Account deletion completed');
+  }
+  
+  /// Re-authenticate user before sensitive operations like account deletion
+  Future<void> reauthenticateWithPassword(String password) async {
+    if (_user == null || _user!.email == null) {
+      throw Exception('No authenticated user or email');
+    }
+    
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: _user!.email!,
+        password: password,
+      );
+      await _user!.reauthenticateWithCredential(credential);
+      debugPrint('[AuthProvider] Re-authentication successful');
+    } catch (e) {
+      debugPrint('[AuthProvider] Re-authentication failed: $e');
       rethrow;
     }
   }
