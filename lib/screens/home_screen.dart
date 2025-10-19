@@ -17,6 +17,7 @@ import 'entry_detail_screen.dart';
 import 'pattern_report_screen.dart';
 import 'coaching_screen.dart';
 import 'auth_gate_screen.dart';
+import 'email_auth_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -213,8 +214,8 @@ class _HomeScreenState extends State<HomeScreen> {
           final annoyanceCount = annoyanceProvider.annoyances.length;
           final isAnonymous = authProvider.user?.isAnonymous ?? false;
           
-          // Check if this is the configured annoyance count and user is anonymous (show auth gate)
-          if (annoyanceCount == AppConstants.annoyancesForAuthGate && isAnonymous) {
+          // Check if user has reached the threshold and is still anonymous (show auth gate)
+          if (annoyanceCount >= AppConstants.annoyancesForAuthGate && isAnonymous) {
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
               Navigator.of(context).push(
@@ -277,8 +278,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
     final annoyanceProvider = Provider.of<AnnoyanceProvider>(context);
+    final isAnonymous = authProvider.user?.isAnonymous ?? true;
 
     return Scaffold(
       appBar: AppBar(
@@ -287,6 +289,35 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          // Login status indicator
+          if (isAnonymous)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const EmailAuthScreen(
+                      initialMode: AuthMode.signIn,
+                    ),
+                  ),
+                );
+              },
+              child: const Text(
+                'Sign In',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Icon(
+                Icons.account_circle,
+                color: AppColors.primaryTeal,
+                size: 28,
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {

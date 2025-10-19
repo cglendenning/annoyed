@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -13,10 +14,17 @@ import 'providers/suggestion_provider.dart';
 import 'providers/preferences_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/email_auth_screen.dart';
 import 'utils/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock app to portrait orientation
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   // Load environment variables
   await dotenv.load(fileName: ".env");
@@ -114,6 +122,7 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   bool _isCheckingOnboarding = true;
   bool _hasCompletedOnboarding = false;
+  bool _hasEverSignedInWithEmail = false;
 
   @override
   void initState() {
@@ -139,10 +148,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<void> _checkOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     final completed = prefs.getBool('onboarding_completed') ?? false;
+    final hasSignedIn = await AuthProvider.hasEverSignedInWithEmail();
     
     if (mounted) {
       setState(() {
         _hasCompletedOnboarding = completed;
+        _hasEverSignedInWithEmail = hasSignedIn;
         _isCheckingOnboarding = false;
       });
     }
@@ -160,8 +171,21 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       );
     }
 
-    // Show onboarding if not authenticated OR if onboarding not completed
-    if (!authProvider.isAuthenticated || !_hasCompletedOnboarding) {
+    // If user is authenticated, show home screen
+    if (authProvider.isAuthenticated) {
+      return const HomeScreen();
+    }
+
+    // If user has signed in with email before but is currently signed out,
+    // show sign-in page instead of onboarding
+    if (_hasEverSignedInWithEmail) {
+      return const EmailAuthScreen(
+        initialMode: AuthMode.signIn,
+      );
+    }
+
+    // New user - show onboarding if not completed
+    if (!_hasCompletedOnboarding) {
       return OnboardingScreen(
         onComplete: () {
           // Re-check onboarding status when completed

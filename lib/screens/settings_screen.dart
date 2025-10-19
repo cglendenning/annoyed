@@ -7,9 +7,11 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
+import '../utils/app_colors.dart';
 import 'about_screen.dart';
 import 'terms_screen.dart';
 import 'paywall_screen.dart';
+import 'email_auth_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -530,7 +532,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ListTile(
                       title: const Text('Email'),
                       subtitle: Text(authProvider.userEmail!),
-                      leading: const Icon(Icons.email),
+                      leading: const Icon(Icons.email, color: AppColors.primaryTeal),
                     ),
                     ListTile(
                       title: const Text('Sign Out'),
@@ -558,11 +560,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (confirm == true && mounted) {
                           await authProvider.signOut();
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Signed out successfully'),
-                                backgroundColor: Colors.green,
+                            // Navigate to sign-in screen, removing all routes
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => const EmailAuthScreen(
+                                  initialMode: AuthMode.signIn,
+                                ),
                               ),
+                              (route) => false, // Remove all previous routes
                             );
                           }
                         }
@@ -572,9 +577,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               } else if (authProvider.isAuthenticated) {
                 return ListTile(
-                  title: const Text('Anonymous User'),
-                  subtitle: const Text('Sign up to save your data'),
-                  leading: const Icon(Icons.person_outline),
+                  title: const Text('Sign In'),
+                  subtitle: const Text('Sign up or sign in to save your data'),
+                  leading: const Icon(Icons.login, color: AppColors.primaryTeal),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const EmailAuthScreen(
+                          initialMode: AuthMode.signIn,
+                        ),
+                      ),
+                    );
+                  },
                 );
               } else {
                 return const SizedBox.shrink();

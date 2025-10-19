@@ -100,11 +100,6 @@ class AuthGateScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 16),
                     _BenefitRow(
-                      icon: Icons.cloud_sync,
-                      text: 'Sync across all your devices',
-                    ),
-                    SizedBox(height: 16),
-                    _BenefitRow(
                       icon: Icons.card_giftcard,
                       text: 'Access exclusive deals from Coach Craig',
                     ),
@@ -160,20 +155,41 @@ class AuthGateScreen extends StatelessWidget {
               const SizedBox(height: 16),
               
               // Sign in button (if they already have account)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => const EmailAuthScreen(
-                        initialMode: AuthMode.signIn,
+              Column(
+                children: [
+                  const Text(
+                    'Already have an account?',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const EmailAuthScreen(
+                            initialMode: AuthMode.signIn,
+                          ),
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: const Text(
+                      'Sign In',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  );
-                },
-                child: const Text('Already have an account? Sign In'),
+                  ),
+                ],
               ),
               
-              const SizedBox(height: 24),
+              const SizedBox(height: 60), // Extra padding to clear iOS home indicator
             ],
           ),
         ),

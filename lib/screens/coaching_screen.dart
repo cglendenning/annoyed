@@ -200,15 +200,22 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
       final result = await FirebaseService.generateCoaching(uid: uid);
       debugPrint('[CoachingScreen] Received result: ${result['recommendation']?.substring(0, 50)}...');
       
+      // Save coaching immediately so it doesn't regenerate on next view
+      await FirebaseService.saveCoachingResonance(
+        uid: uid,
+        recommendation: result['recommendation'],
+        type: result['type'],
+        resonance: '', // Empty until user provides feedback
+        explanation: result['explanation'] ?? '',
+      );
+      debugPrint('[CoachingScreen] Saved coaching to Firestore');
+      
       if (mounted) {
         setState(() {
           _coaching = result;
           _isLoading = false;
           _isGenerating = false;
         });
-        
-        // Note: Coaching will be saved to Firestore when user provides feedback (hell_yes/meh)
-        // or when they view it from history. We don't save immediately to avoid duplicates.
         
         await AnalyticsService.logEvent('coaching_viewed');
       }

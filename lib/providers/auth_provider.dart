@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
 
@@ -28,6 +29,18 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     });
+  }
+  
+  /// Mark that user has signed in with email (persists across app restarts)
+  Future<void> _markHasSignedInWithEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_ever_signed_in_with_email', true);
+  }
+  
+  /// Check if user has ever signed in with email
+  static Future<bool> hasEverSignedInWithEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('has_ever_signed_in_with_email') ?? false;
   }
 
   Future<void> signInAnonymously() async {
@@ -92,6 +105,9 @@ class AuthProvider with ChangeNotifier {
         });
       }
       
+      // Mark that user has signed in with email
+      await _markHasSignedInWithEmail();
+      
       await AnalyticsService.logInstall();
       notifyListeners();
     } catch (e) {
@@ -137,6 +153,9 @@ class AuthProvider with ChangeNotifier {
         // (they already have the correct uid, so no migration needed)
       }
       
+      // Mark that user has signed in with email
+      await _markHasSignedInWithEmail();
+      
       await AnalyticsService.logEvent('account_upgraded');
       notifyListeners();
     } catch (e) {
@@ -157,6 +176,10 @@ class AuthProvider with ChangeNotifier {
       );
       
       _user = credential.user;
+      
+      // Mark that user has signed in with email
+      await _markHasSignedInWithEmail();
+      
       notifyListeners();
     } catch (e) {
       debugPrint('Error signing in: $e');
