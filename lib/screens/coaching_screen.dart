@@ -24,6 +24,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   bool _isLoading = true;
   bool _showExplanation = false;
   bool _hasGivenFeedback = false;
+  bool _hasCommitted = false; // Commitment gate
   String? _error;
   Map<String, dynamic>? _coaching;
   int _loadingMessageIndex = 0;
@@ -351,12 +352,18 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Your Coaching'),
+      backgroundColor: const Color(0xFF0F766E), // Immersive background
+      appBar: _hasCommitted ? AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
           if (!_isLoading && _error == null) ...[
             IconButton(
-              icon: const Icon(Icons.history),
+              icon: const Icon(Icons.history, color: Colors.white),
               tooltip: 'View coaching history',
               onPressed: () {
                 Navigator.of(context).push(
@@ -367,7 +374,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
               },
             ),
             IconButton(
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh, color: Colors.white),
               tooltip: 'Generate new coaching',
               onPressed: () async {
                 setState(() {
@@ -388,15 +395,156 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
             ),
           ],
         ],
-      ),
-      body: _isLoading
-          ? _buildBeautifulLoadingState()
-          : _error != null
-              ? _buildErrorState()
-              : _buildCoachingContent(),
+      ) : null,
+      body: !_hasCommitted
+          ? _buildCommitmentGate()
+          : _isLoading
+              ? _buildBeautifulLoadingState()
+              : _error != null
+                  ? _buildErrorState()
+                  : _buildCoachingContent(),
     );
   }
   
+  Widget _buildCommitmentGate() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF0F766E),
+            const Color(0xFF0F766E).withOpacity(0.8),
+            AppColors.primaryTealDark,
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Glowing icon
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.3),
+                      blurRadius: 50,
+                      spreadRadius: 10,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.self_improvement,
+                  size: 80,
+                  color: Colors.white,
+                ),
+              ),
+              
+              const SizedBox(height: 48),
+              
+              const Text(
+                'Before We Begin...',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white70,
+                  letterSpacing: 2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 16),
+              
+              const Text(
+                'Can you commit to 5 minutes of uninterrupted deep work on yourself right now?',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  height: 1.3,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              Text(
+                'No transformation can happen if you\'re distracted.',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withOpacity(0.9),
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 64),
+              
+              // Yes button
+              SizedBox(
+                width: double.infinity,
+                height: 64,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _hasCommitted = true;
+                    });
+                    _loadCoaching(forceRegenerate: widget.forceRegenerate);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF0F766E),
+                    elevation: 8,
+                    shadowColor: Colors.black.withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Yes, I\'m Ready',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Not now button
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white.withOpacity(0.7),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                ),
+                child: const Text(
+                  'Not now, I\'ll come back later',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBeautifulLoadingState() {
     return Center(
       child: Padding(
@@ -413,17 +561,17 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                   child: Container(
                     width: 120,
                     height: 120,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: SweepGradient(
-                        colors: const [
-                          AppColors.primaryTealLight,
-                          AppColors.primaryTeal,
-                          AppColors.accentCoral,
+                        colors: [
+                          Colors.white24,
+                          Colors.white,
                           AppColors.accentCoralLight,
-                          AppColors.primaryTealLight,
+                          Colors.white,
+                          Colors.white24,
                         ],
-                        stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+                        stops: [0.0, 0.25, 0.5, 0.75, 1.0],
                       ),
                     ),
                     child: Center(
@@ -432,12 +580,12 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                         height: 100,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Theme.of(context).scaffoldBackgroundColor,
+                          color: const Color(0xFF0F766E),
                         ),
                         child: const Icon(
                           Icons.psychology,
                           size: 48,
-                          color: AppColors.primaryTeal,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -457,7 +605,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryTeal,
+                  color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -469,7 +617,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
               'Coach Craig is reviewing your patterns',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade600,
+                color: Colors.white.withOpacity(0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -515,169 +663,295 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
 
   Widget _buildCoachingContent() {
     if (_coaching == null) {
-      return const Center(child: Text('No coaching available'));
+      return const Center(child: Text('No coaching available', style: TextStyle(color: Colors.white)));
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+    final recommendation = _coaching!['recommendation'] ?? '';
+    final explanation = _coaching!['explanation'] ?? '';
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            const Color(0xFF0F766E),
+            const Color(0xFF0F766E).withOpacity(0.95),
+            AppColors.primaryTealDark,
+          ],
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Hero section with dramatic visual
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.1),
+                    Colors.white.withOpacity(0.05),
+                  ],
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Glowing badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentCoral,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accentCoral.withOpacity(0.5),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'YOUR BREAKTHROUGH',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  const Icon(
+                    Icons.auto_awesome,
+                    size: 80,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+
+            // Main content
+            Container(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  // Section 1: Mindset Shift
+                  _buildInsightCard(
+                    icon: Icons.psychology,
+                    title: 'MINDSET SHIFT',
+                    content: recommendation,
+                    gradient: [
+                      Colors.white,
+                      const Color(0xFFFFF5F5),
+                    ],
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Section 2: Behavior Change  
+                  _buildInsightCard(
+                    icon: Icons.bolt,
+                    title: 'ACTION STEP',
+                    content: explanation,
+                    gradient: [
+                      const Color(0xFFFFF5F5),
+                      Colors.white,
+                    ],
+                  ),
+
+                  const SizedBox(height: 48),
+
+                  // Resonance section
+                  Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'How does this land?',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        if (!_hasGivenFeedback)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => _handleResonance('meh'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 20),
+                                    side: const BorderSide(color: Colors.white54, width: 2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Meh',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton(
+                                  onPressed: () => _handleResonance('hell_yes'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF0F766E),
+                                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                                    elevation: 8,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'Hell YESSS!',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Icon(Icons.check_circle, size: 24),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.white, size: 28),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Feedback received!',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInsightCard({
+    required IconData icon,
+    required String title,
+    required String content,
+    required List<Color> gradient,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon and type
-          Center(
-            child: Column(
-              children: [
-                ClipOval(
-                  child: AnimatedGradientContainer(
-                    colors: const [
-                      AppColors.primaryTealLight,
-                      AppColors.primaryTeal,
-                      AppColors.accentCoralLight,
-                    ],
-                    duration: const Duration(seconds: 5),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      child: Icon(
-                        _getTypeIcon(),
-                        size: 48,
-                        color: Colors.white,
-                      ),
-                    ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primaryTeal, AppColors.accentCoral],
                   ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primaryTealLight.withAlpha(26), // ~10%
-                        AppColors.accentCoralLight.withAlpha(26), // ~10%
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: ShaderMask(
-                    shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
-                    child: Text(
-                      _getTypeLabel(),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                child: Icon(icon, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  color: Color(0xFF0F766E),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-
-          const SizedBox(height: 32),
-
-          // Recommendation
-          const Text(
-            'Your Fix',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 12),
+          
+          const SizedBox(height: 24),
+          
           Text(
-            _coaching!['recommendation'] ?? '',
+            content,
             style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              height: 1.3,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              height: 1.5,
+              color: Colors.black87,
+              letterSpacing: -0.3,
             ),
           ),
-
-          const SizedBox(height: 32),
-
-          // Explanation (initially hidden)
-          if (!_showExplanation)
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showExplanation = true;
-                  });
-                  AnalyticsService.logEvent('coaching_explain_more');
-                },
-                icon: const Icon(Icons.arrow_downward),
-                label: const Text('Explain more'),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF0F766E),
-                ),
-              ),
-            ),
-
-          if (_showExplanation) ...[
-            const Divider(height: 32),
-            Text(
-              _coaching!['explanation'] ?? '',
-              style: const TextStyle(
-                fontSize: 16,
-                height: 1.6,
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 32),
-
-          // Resonance buttons
-          if (!_hasGivenFeedback) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _handleResonance('meh'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: BorderSide(color: Colors.grey.shade300, width: 2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Meh.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _handleResonance('hell_yes'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F766E),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'HELL Yes!',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );

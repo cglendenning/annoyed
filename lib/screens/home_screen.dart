@@ -15,7 +15,6 @@ import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'entry_detail_screen.dart';
-import 'pattern_report_screen.dart';
 import 'coaching_screen.dart';
 import 'auth_gate_screen.dart';
 import 'email_auth_screen.dart';
@@ -33,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isRecording = false;
   bool _isSaving = false;
   String _transcript = '';
-  bool _hasShownPatternReport = false;
   bool _isPremium = false;
 
   @override
@@ -64,22 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final uid = authProvider.userId;
     if (uid != null) {
       await annoyanceProvider.loadAnnoyances(uid);
-
-      // Check if we should show pattern report (only once per session)
-      final patternReport = annoyanceProvider.getPatternReport();
-      if (patternReport != null && !_hasShownPatternReport && mounted) {
-        _hasShownPatternReport = true;
-        // Show pattern report after 3rd entry
-        Future.microtask(() {
-          if (mounted) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const PatternReportScreen(),
-              ),
-            );
-          }
-        });
-      }
     }
   }
 
