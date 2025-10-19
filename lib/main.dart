@@ -10,7 +10,6 @@ import 'dart:io';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/annoyance_provider.dart';
-import 'providers/suggestion_provider.dart';
 import 'providers/preferences_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
@@ -77,7 +76,6 @@ class AnnoyedApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => AnnoyanceProvider()),
-        ChangeNotifierProvider(create: (_) => SuggestionProvider()),
         ChangeNotifierProvider(create: (_) => PreferencesProvider()),
       ],
       child: MaterialApp(

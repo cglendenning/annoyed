@@ -114,8 +114,12 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
       if (!forceRegenerate) {
         final annoyanceProvider = Provider.of<AnnoyanceProvider>(context, listen: false);
         
-        // Ensure annoyances are loaded
-        await annoyanceProvider.loadAnnoyances(uid);
+        // Ensure annoyances are listening (will be loaded if not already)
+        if (annoyanceProvider.annoyances.isEmpty) {
+          annoyanceProvider.startListening(uid);
+          // Give it a moment to load
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
         
         final coachings = await FirebaseService.getAllCoachings(uid: uid);
         

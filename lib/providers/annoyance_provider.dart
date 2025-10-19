@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/annoyance.dart';
 import '../services/firebase_service.dart';
@@ -9,6 +10,7 @@ class AnnoyanceProvider with ChangeNotifier {
   List<Annoyance> _annoyances = [];
   bool _isLoading = false;
   String? _error;
+  StreamSubscription<List<Annoyance>>? _subscription;
 
   List<Annoyance> get annoyances => _annoyances;
   bool get isLoading => _isLoading;
@@ -32,22 +34,45 @@ class AnnoyanceProvider with ChangeNotifier {
     }).toList();
   }
 
-  /// Load user annoyances
-  Future<void> loadAnnoyances(String uid) async {
+  /// Start listening to user annoyances in real-time
+  void startListening(String uid) {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
-    try {
-      _annoyances = await FirebaseService.getUserAnnoyances(uid);
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-      debugPrint('Error loading annoyances: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    
+    // Cancel any existing subscription
+    _subscription?.cancel();
+    
+    // Subscribe to real-time updates
+    _subscription = FirebaseService.streamUserAnnoyances(uid).listen(
+      (annoyances) {
+        _annoyances = annoyances;
+        _isLoading = false;
+        _error = null;
+        notifyListeners();
+      },
+      onError: (error) {
+        _error = error.toString();
+        _isLoading = false;
+        debugPrint('Error streaming annoyances: $error');
+        notifyListeners();
+      },
+    );
+  }
+  
+  /// Stop listening to annoyances
+  void stopListening() {
+    _subscription?.cancel();
+    _subscription = null;
+    _annoyances = [];
+    _isLoading = false;
+    _error = null;
+  }
+  
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   /// Save a new annoyance
@@ -83,9 +108,7 @@ class AnnoyanceProvider with ChangeNotifier {
       // Log analytics
       await AnalyticsService.logAnnoyanceSaved(annoyance.category);
 
-      // Reload annoyances
-      await loadAnnoyances(uid);
-
+      // Stream will automatically update the list
       return id;
     } catch (e) {
       _error = e.toString();
@@ -96,10 +119,10 @@ class AnnoyanceProvider with ChangeNotifier {
   }
 
   /// Update an annoyance
-  Future<void> updateAnnoyance(Annoyance annoyance, String uid) async {
+  Future<void> updateAnnoyance(Annoyance annoyance) async {
     try {
       await FirebaseService.updateAnnoyance(annoyance);
-      await loadAnnoyances(uid);
+      // Stream will automatically update the list
     } catch (e) {
       _error = e.toString();
       debugPrint('Error updating annoyance: $e');
@@ -108,10 +131,10 @@ class AnnoyanceProvider with ChangeNotifier {
   }
 
   /// Delete an annoyance
-  Future<void> deleteAnnoyance(String id, String uid) async {
+  Future<void> deleteAnnoyance(String id) async {
     try {
       await FirebaseService.deleteAnnoyance(id);
-      await loadAnnoyances(uid);
+      // Stream will automatically update the list
     } catch (e) {
       _error = e.toString();
       debugPrint('Error deleting annoyance: $e');

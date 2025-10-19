@@ -8,7 +8,6 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:math';
 import '../models/annoyance.dart';
-import '../models/suggestion.dart';
 import '../models/user_preferences.dart';
 
 class FirebaseService {
@@ -50,28 +49,28 @@ class FirebaseService {
   }
 
   static Future<UserCredential> signInWithGoogle() async {
-    // TODO: Fix for google_sign_in v7 API changes
-    throw UnimplementedError('Google Sign In temporarily disabled - use email/Apple sign in');
+    // Initialize Google Sign In
+    final GoogleSignIn googleSignIn = GoogleSignIn();
     
-    // // Trigger the authentication flow
-    // final GoogleSignInAccount? googleUser = await GoogleSignIn().signInSilently() ?? await GoogleSignIn().signInInteractively();
-    // 
-    // if (googleUser == null) {
-    //   // User canceled the sign-in
-    //   throw Exception('Google Sign In was cancelled');
-    // }
-    //
-    // // Obtain the auth details from the request
-    // final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    //
-    // // Create a new credential
-    // final credential = GoogleAuthProvider.credential(
-    //   accessToken: googleAuth.serverAuthCode,
-    //   idToken: googleAuth.idToken,
-    // );
-    //
-    // // Sign in to Firebase with Google credential
-    // return await _auth.signInWithCredential(credential);
+    // Trigger the authentication flow
+    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+    
+    if (googleUser == null) {
+      // User canceled the sign-in
+      throw Exception('Google Sign In was cancelled');
+    }
+
+    // Obtain the auth details from the request
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    // Create a new credential
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // Sign in to Firebase with Google credential
+    return await _auth.signInWithCredential(credential);
   }
 
   static String _generateNonce([int length = 32]) {
@@ -94,8 +93,6 @@ class FirebaseService {
   static CollectionReference get usersCollection => _firestore.collection('users');
   static CollectionReference get annoyancesCollection =>
       _firestore.collection('annoyances');
-  static CollectionReference get suggestionsCollection =>
-      _firestore.collection('suggestions');
   static CollectionReference get eventsCollection => _firestore.collection('events');
   static CollectionReference get llmCostCollection =>
       _firestore.collection('llm_cost');
@@ -156,45 +153,6 @@ class FirebaseService {
     await annoyancesCollection.doc(id).delete();
   }
 
-  // Suggestions
-  static Future<String> saveSuggestion(Suggestion suggestion) async {
-    final docRef = await suggestionsCollection.add(suggestion.toFirestore());
-    return docRef.id;
-  }
-
-  static Future<void> updateSuggestion(Suggestion suggestion) async {
-    await suggestionsCollection.doc(suggestion.id).update(suggestion.toFirestore());
-  }
-
-  static Stream<List<Suggestion>> streamUserSuggestions(String uid) {
-    return suggestionsCollection
-        .where('uid', isEqualTo: uid)
-        .orderBy('ts', descending: true)
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Suggestion.fromFirestore(doc)).toList());
-  }
-
-  static Future<List<Suggestion>> getUserSuggestions(String uid,
-      {int? limit}) async {
-    Query query = suggestionsCollection
-        .where('uid', isEqualTo: uid)
-        .orderBy('ts', descending: true);
-
-    if (limit != null) {
-      query = query.limit(limit);
-    }
-
-    final snapshot = await query.get();
-    return snapshot.docs.map((doc) => Suggestion.fromFirestore(doc)).toList();
-  }
-
-  static Future<int> getUserSuggestionCount(String uid) async {
-    final snapshot =
-        await suggestionsCollection.where('uid', isEqualTo: uid).count().get();
-    return snapshot.count ?? 0;
-  }
-
   // Analytics Events
   static Future<void> logEvent(String type, Map<String, dynamic>? meta) async {
     final uid = currentUserId;
@@ -216,25 +174,6 @@ class FirebaseService {
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
       debugPrint('Error calling classifyAnnoyance: $e');
-      rethrow;
-    }
-  }
-
-  static Future<Map<String, dynamic>> generateSuggestion({
-    required String uid,
-    required String category,
-    required String trigger,
-  }) async {
-    try {
-      final callable = _functions.httpsCallable('generateSuggestion');
-      final result = await callable.call({
-        'uid': uid,
-        'category': category,
-        'trigger': trigger,
-      });
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      debugPrint('Error calling generateSuggestion: $e');
       rethrow;
     }
   }
@@ -321,43 +260,43 @@ class FirebaseService {
 
   // Delete all user data
   static Future<void> deleteAllUserData(String uid) async {
-    // Delete annoyances
-    final annoyancesSnapshot =
-        await annoyancesCollection.where('uid', isEqualTo: uid).get();
-    for (final doc in annoyancesSnapshot.docs) {
-      await doc.reference.delete();
-    }
-
-    // Delete suggestions
-    final suggestionsSnapshot =
-        await suggestionsCollection.where('uid', isEqualTo: uid).get();
-    for (final doc in suggestionsSnapshot.docs) {
-      await doc.reference.delete();
-    }
-
-    // Delete coaching records
-    final coachingSnapshot =
-        await _firestore.collection('coaching').where('uid', isEqualTo: uid).get();
-    for (final doc in coachingSnapshot.docs) {
-      await doc.reference.delete();
-    }
-
-    // Delete events
-    final eventsSnapshot =
-        await eventsCollection.where('uid', isEqualTo: uid).get();
-    for (final doc in eventsSnapshot.docs) {
-      await doc.reference.delete();
-    }
-
-    // Delete LLM cost records
-    final llmCostSnapshot =
-        await llmCostCollection.where('uid', isEqualTo: uid).get();
-    for (final doc in llmCostSnapshot.docs) {
-      await doc.reference.delete();
-    }
-
-    // Delete user preferences
-    await usersCollection.doc(uid).delete();
+    // Delete all user data from Firestore collections in parallel
+    await Future.wait([
+      // Delete annoyances
+      annoyancesCollection
+          .where('uid', isEqualTo: uid)
+          .get()
+          .then((snapshot) => Future.wait(
+            snapshot.docs.map((doc) => doc.reference.delete())
+          )),
+      
+      // Delete coaching records
+      _firestore.collection('coaching')
+          .where('uid', isEqualTo: uid)
+          .get()
+          .then((snapshot) => Future.wait(
+            snapshot.docs.map((doc) => doc.reference.delete())
+          )),
+      
+      // Delete events
+      eventsCollection
+          .where('uid', isEqualTo: uid)
+          .get()
+          .then((snapshot) => Future.wait(
+            snapshot.docs.map((doc) => doc.reference.delete())
+          )),
+      
+      // Delete LLM cost records
+      llmCostCollection
+          .where('uid', isEqualTo: uid)
+          .get()
+          .then((snapshot) => Future.wait(
+            snapshot.docs.map((doc) => doc.reference.delete())
+          )),
+      
+      // Delete user preferences
+      usersCollection.doc(uid).delete(),
+    ]);
   }
 }
 

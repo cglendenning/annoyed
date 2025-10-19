@@ -57,7 +57,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         modified: true,
       );
 
-      await annoyanceProvider.updateAnnoyance(updatedAnnoyance, uid);
+      await annoyanceProvider.updateAnnoyance(updatedAnnoyance);
 
       if (mounted) {
         setState(() {

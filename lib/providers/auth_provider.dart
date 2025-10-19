@@ -5,10 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
 
-// EmailAuthProvider is part of firebase_auth but needs explicit reference
-// ignore: implementation_imports
-import 'package:firebase_auth/firebase_auth.dart' show EmailAuthProvider;
-
 class AuthProvider with ChangeNotifier {
   User? _user;
   bool _isLoading = true;
@@ -204,51 +200,8 @@ class AuthProvider with ChangeNotifier {
     try {
       final uid = _user!.uid;
       
-      // Delete all user data from Firestore collections in parallel
-      await Future.wait([
-        // Delete user document
-        FirebaseFirestore.instance.collection('users').doc(uid).delete(),
-        
-        // Delete annoyances
-        FirebaseFirestore.instance.collection('annoyances')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-        
-        // Delete coaching records
-        FirebaseFirestore.instance.collection('coaching')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-        
-        // Delete suggestions
-        FirebaseFirestore.instance.collection('suggestions')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-        
-        // Delete events
-        FirebaseFirestore.instance.collection('events')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-        
-        // Delete LLM cost records (GDPR compliance)
-        FirebaseFirestore.instance.collection('llm_cost')
-            .where('uid', isEqualTo: uid)
-            .get()
-            .then((snapshot) => Future.wait(
-              snapshot.docs.map((doc) => doc.reference.delete())
-            )),
-      ]);
+      // Delete all user data from Firestore using centralized service method
+      await FirebaseService.deleteAllUserData(uid);
       
       // Delete Firebase Auth account
       await _user!.delete();
