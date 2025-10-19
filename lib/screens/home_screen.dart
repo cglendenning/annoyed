@@ -311,11 +311,18 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           else
             Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: Icon(
-                Icons.account_circle,
-                color: AppColors.primaryTeal,
-                size: 28,
+              padding: const EdgeInsets.only(right: 16.0),
+              child: ShaderMask(
+                shaderCallback: (bounds) => LinearGradient(
+                  colors: [AppColors.primaryTeal, AppColors.accentCoral],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                child: const Icon(
+                  Icons.account_circle,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
             ),
           IconButton(

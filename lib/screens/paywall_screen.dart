@@ -259,28 +259,28 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       );
                     })),
                   ] else ...[
-                    const Center(
+                    Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline, size: 64, color: Colors.red),
-                            SizedBox(height: 16),
-                            Text(
+                            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            const Text(
                               'Unable to load subscription options',
                               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               'Please check your internet connection and try again. If the problem persists, contact support.',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadOfferings,
-                              child: Text('Retry'),
+                              child: const Text('Retry'),
                             ),
                           ],
                         ),

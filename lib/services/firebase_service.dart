@@ -50,28 +50,28 @@ class FirebaseService {
   }
 
   static Future<UserCredential> signInWithGoogle() async {
-    // Initialize Google Sign In
-    final GoogleSignIn googleSignIn = GoogleSignIn();
+    // TODO: Fix for google_sign_in v7 API changes
+    throw UnimplementedError('Google Sign In temporarily disabled - use email/Apple sign in');
     
-    // Trigger the authentication flow
-    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-    
-    if (googleUser == null) {
-      // User canceled the sign-in
-      throw Exception('Google Sign In was cancelled');
-    }
-
-    // Obtain the auth details from the request
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-    // Create a new credential
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    // Sign in to Firebase with Google credential
-    return await _auth.signInWithCredential(credential);
+    // // Trigger the authentication flow
+    // final GoogleSignInAccount? googleUser = await GoogleSignIn().signInSilently() ?? await GoogleSignIn().signInInteractively();
+    // 
+    // if (googleUser == null) {
+    //   // User canceled the sign-in
+    //   throw Exception('Google Sign In was cancelled');
+    // }
+    //
+    // // Obtain the auth details from the request
+    // final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    //
+    // // Create a new credential
+    // final credential = GoogleAuthProvider.credential(
+    //   accessToken: googleAuth.serverAuthCode,
+    //   idToken: googleAuth.idToken,
+    // );
+    //
+    // // Sign in to Firebase with Google credential
+    // return await _auth.signInWithCredential(credential);
   }
 
   static String _generateNonce([int length = 32]) {
