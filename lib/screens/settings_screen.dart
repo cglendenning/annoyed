@@ -158,20 +158,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
   
-  Future<void> _resetOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_completed', false);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Onboarding reset. Restart the app to see it again.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-
   Future<void> _deleteAllData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
@@ -646,26 +632,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 return const SizedBox.shrink();
               }
             },
-          ),
-
-          const Divider(height: 32),
-
-          // Debug
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              'Debug',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ListTile(
-            title: const Text('Reset Onboarding'),
-            subtitle: const Text('See the tutorial and permission screens again'),
-            trailing: const Icon(Icons.refresh),
-            onTap: _resetOnboarding,
           ),
 
           const Divider(height: 32),
