@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -72,9 +73,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
   
   Future<void> _exportData() async {
+    debugPrint('[Settings] Export data started');
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
+    debugPrint('[Settings] Auth status: ${authProvider.isAuthenticated}, UID: ${authProvider.userId}');
+    
     if (!authProvider.isAuthenticated) {
+      debugPrint('[Settings] User not authenticated, showing error');
       _showErrorDialog(
         'Sign In Required',
         'You must be signed in to export your data.',
@@ -83,22 +88,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     
     // Show loading
+    debugPrint('[Settings] Showing loading dialog');
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                'Exporting data...',
+                style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
       ),
     );
     
     try {
       final uid = authProvider.userId!;
+      debugPrint('[Settings] Fetching data for uid: $uid');
       
       // Fetch all user data
       final annoyances = await FirebaseService.getUserAnnoyances(uid);
+      debugPrint('[Settings] Fetched ${annoyances.length} annoyances');
       final coachings = await FirebaseService.getAllCoachings(uid: uid);
+      debugPrint('[Settings] Fetched ${coachings.length} coachings');
       
-      // Format as JSON
+      // Format as JSON - convert all Timestamps to strings
       final exportData = {
         'export_date': DateTime.now().toIso8601String(),
         'user_id': uid,
@@ -109,53 +135,162 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'category': a.category,
           'trigger': a.trigger,
         }).toList(),
-        'coachings': coachings,
+        'coachings': coachings.map((coaching) {
+          final converted = Map<String, dynamic>.from(coaching);
+          // Convert Firestore Timestamps to ISO strings
+          if (converted['ts'] != null) {
+            final ts = converted['ts'];
+            if (ts is DateTime) {
+              converted['ts'] = ts.toIso8601String();
+            } else {
+              converted['ts'] = ts.toDate().toIso8601String();
+            }
+          }
+          if (converted['timestamp'] != null) {
+            final timestamp = converted['timestamp'];
+            if (timestamp is DateTime) {
+              converted['timestamp'] = timestamp.toIso8601String();
+            } else {
+              converted['timestamp'] = timestamp.toDate().toIso8601String();
+            }
+          }
+          return converted;
+        }).toList(),
       };
       
-      if (mounted) {
-        Navigator.of(context).pop(); // Close loading
-        
-        // Show export data in a dialog
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Export Data'),
-            content: SingleChildScrollView(
-              child: SelectableText(
-                const JsonEncoder.withIndent('  ').convert(exportData),
-                style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+      if (!mounted) return;
+      
+      debugPrint('[Settings] Data fetched successfully, copying to clipboard');
+      
+      // Format and copy to clipboard
+      final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
+      await Clipboard.setData(ClipboardData(text: jsonString));
+      
+      debugPrint('[Settings] Data copied, closing loading');
+      Navigator.of(context).pop(); // Close loading
+      
+      if (!mounted) return;
+      
+      debugPrint('[Settings] Showing success dialog');
+      
+      // Platform-specific paste instructions
+      final pasteInstructions = Platform.isIOS
+          ? 'Open the Notes app (or any other app)\n\n'
+            '1. Tap and hold in the text area\n'
+            '2. Tap "Paste" from the menu\n'
+            '3. Your data will appear as formatted JSON'
+          : 'Open any text app (Notes, Keep, etc.)\n\n'
+            '1. Long press in the text area\n'
+            '2. Tap "Paste" from the menu\n'
+            '3. Your data will appear as formatted JSON';
+      
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 32,
+                ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(
-                    text: const JsonEncoder.withIndent('  ').convert(exportData),
-                  ));
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Data copied to clipboard'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                },
-                child: const Text('Copy to Clipboard'),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Data Exported!',
+                  style: TextStyle(fontSize: 20),
+                ),
               ),
             ],
           ),
-        );
-      }
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.inventory, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${annoyances.length} annoyances and ${coachings.length} coachings copied to clipboard',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'How to use:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                pasteInstructions,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Data is in JSON format - perfect for importing or sharing',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Got it'),
+            ),
+          ],
+        ),
+      );
     } catch (e) {
+      debugPrint('[Settings] Export error: $e');
       if (mounted) {
         Navigator.of(context).pop(); // Close loading
         _showErrorDialog('Export Failed', 'Unable to export data: ${e.toString()}');
       }
     }
+    debugPrint('[Settings] Export data completed');
   }
   
   Future<void> _deleteAllData() async {
