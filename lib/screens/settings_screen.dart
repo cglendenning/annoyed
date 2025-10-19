@@ -308,35 +308,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
     
+    // Show confirmation dialog with text input requirement
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete All My Data'),
-        content: const Text(
-          'This will permanently delete:\n\n'
-          '• Your account and authentication\n'
-          '• All annoyances and recordings\n'
-          '• All coaching and suggestions\n'
-          '• All preferences and settings\n'
-          '• Everything from Firebase\n'
-          '• All local data on this device\n\n'
-          'This action cannot be undone and complies with GDPR "right to be forgotten."',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete Everything'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final confirmTextController = TextEditingController();
+        bool isValid = false;
+        
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Delete All My Data'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'This will permanently delete:\n\n'
+                      '• Your account and authentication\n'
+                      '• All annoyances and recordings\n'
+                      '• All coaching and suggestions\n'
+                      '• All preferences and settings\n'
+                      '• Everything from Firebase\n'
+                      '• All local data on this device\n\n'
+                      'This action cannot be undone and complies with GDPR "right to be forgotten."\n\n',
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade300),
+                      ),
+                      child: const Text(
+                        'Type "delete my data" below to confirm:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: confirmTextController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'delete my data',
+                        border: const OutlineInputBorder(),
+                        errorText: confirmTextController.text.isNotEmpty && !isValid
+                            ? 'Must match exactly'
+                            : null,
+                      ),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          isValid = value.trim().toLowerCase() == 'delete my data';
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isValid
+                      ? () => Navigator.of(context).pop(true)
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                  ),
+                  child: const Text('Delete Everything'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
 
     if (confirm == true) {
@@ -450,6 +503,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
         
         debugPrint('[Settings] deleteAccount completed successfully');
+        
+        // Reset onboarding flags so user sees onboarding on next launch
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('onboarding_completed');
+        await prefs.remove('has_ever_signed_in_with_email');
+        debugPrint('[Settings] Cleared onboarding flags');
 
         if (!mounted) return;
         
