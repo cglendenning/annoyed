@@ -46,6 +46,32 @@ async function deleteCollection(collectionName, batchSize = 500) {
   });
 }
 
+async function deleteAllAuthUsers() {
+  const listAllUsers = async (nextPageToken) => {
+    const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
+    
+    // Delete users in batches
+    const deletePromises = listUsersResult.users.map(userRecord => {
+      return admin.auth().deleteUser(userRecord.uid)
+        .then(() => {
+          process.stdout.write('.');
+        })
+        .catch(error => {
+          console.error(`\nError deleting user ${userRecord.uid}:`, error);
+        });
+    });
+    
+    await Promise.all(deletePromises);
+    
+    // If there are more users, continue recursively
+    if (listUsersResult.pageToken) {
+      await listAllUsers(listUsersResult.pageToken);
+    }
+  };
+  
+  await listAllUsers();
+}
+
 async function deleteQueryBatch(query, resolve, reject) {
   const snapshot = await query.get();
 
@@ -70,9 +96,11 @@ async function deleteQueryBatch(query, resolve, reject) {
 }
 
 async function clearAllData() {
-  console.log('\n⚠️  WARNING: This will DELETE ALL DATA from ALL collections!\n');
-  console.log('Collections to be cleared:');
+  console.log('\n⚠️  WARNING: This will DELETE ALL DATA from ALL collections AND all authentication users!\n');
+  console.log('Firestore collections to be cleared:');
   COLLECTIONS.forEach(c => console.log(`  - ${c}`));
+  console.log('\nFirebase Authentication:');
+  console.log('  - All user accounts (including anonymous users)');
   console.log('');
 
   const rl = readline.createInterface({
@@ -92,13 +120,19 @@ async function clearAllData() {
 
       console.log('\n🔥 Deleting all data...\n');
 
+      // Delete Firestore collections
       for (const collectionName of COLLECTIONS) {
         process.stdout.write(`Deleting ${collectionName}...`);
         await deleteCollection(collectionName);
         console.log(` ✓ Done`);
       }
 
-      console.log('\n✅ All data has been deleted!\n');
+      // Delete all authentication users
+      process.stdout.write('Deleting all authentication users...');
+      await deleteAllAuthUsers();
+      console.log(' ✓ Done');
+
+      console.log('\n✅ All data and authentication users have been deleted!\n');
       resolve();
     });
   });
