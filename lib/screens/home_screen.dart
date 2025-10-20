@@ -214,6 +214,9 @@ class _HomeScreenState extends State<HomeScreen> {
           
           // Check if user has reached the threshold and is still anonymous (show auth gate)
           if (annoyanceCount >= AppConstants.annoyancesForAuthGate && isAnonymous) {
+            // Mark that the auth wall has been triggered (persists across app restarts)
+            await AuthProvider.markAuthWallTriggered();
+            
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
               Navigator.of(context).push(

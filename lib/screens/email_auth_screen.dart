@@ -136,9 +136,13 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
+      debugPrint('[EmailAuthScreen] Starting authentication...');
+      debugPrint('[EmailAuthScreen] Mode: ${_isSignUp ? "Sign Up" : "Sign In"}, IsUpgrade: ${widget.isUpgrade}');
+      
       if (_isSignUp) {
         if (widget.isUpgrade) {
           // Link anonymous account to email/password
+          debugPrint('[EmailAuthScreen] Calling linkAnonymousToEmail...');
           await authProvider.linkAnonymousToEmail(
             email: _emailController.text.trim(),
             password: _passwordController.text,
@@ -146,6 +150,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           );
         } else {
           // Regular sign up
+          debugPrint('[EmailAuthScreen] Calling signUpWithEmail...');
           await authProvider.signUpWithEmail(
             email: _emailController.text.trim(),
             password: _passwordController.text,
@@ -153,11 +158,14 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           );
         }
       } else {
+        debugPrint('[EmailAuthScreen] Calling signInWithEmail...');
         await authProvider.signInWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       }
+      
+      debugPrint('[EmailAuthScreen] Authentication successful, navigating...');
       
       // Navigation handled by AuthGate - clear stack and let AuthGate route
       if (mounted) {
@@ -166,30 +174,51 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           Navigator.of(context).popUntil((route) => route.isFirst);
         } catch (e) {
           // If popUntil fails, just pop current screen
-          debugPrint('Navigation error: $e');
+          debugPrint('[EmailAuthScreen] Navigation error: $e');
           Navigator.of(context).pop();
         }
       }
     } catch (e) {
+      debugPrint('[EmailAuthScreen] Authentication error caught: $e');
+      debugPrint('[EmailAuthScreen] Error type: ${e.runtimeType}');
+      
       if (mounted) {
         String errorMessage = AppErrorMessages.invalidCredentials;
         
+        // Check for Firebase-specific errors
+        final errorString = e.toString().toLowerCase();
+        debugPrint('[EmailAuthScreen] Error string (lowercase): $errorString');
+        
         // Only show specific errors for sign-up to help users
         if (_isSignUp) {
-          if (e.toString().contains('email-already-in-use')) {
+          if (errorString.contains('email-already-in-use') || errorString.contains('already in use')) {
             errorMessage = AppErrorMessages.emailAlreadyInUse;
-          } else if (e.toString().contains('weak-password')) {
+            debugPrint('[EmailAuthScreen] Detected email-already-in-use error');
+          } else if (errorString.contains('weak-password')) {
             errorMessage = AppErrorMessages.weakPassword;
-          } else if (e.toString().contains('invalid-email')) {
+          } else if (errorString.contains('invalid-email')) {
             errorMessage = 'Please enter a valid email address';
+          } else if (errorString.contains('credential-already-in-use')) {
+            // Firebase sometimes uses this error for account linking
+            errorMessage = 'This email is already registered. Try signing in instead.';
+            debugPrint('[EmailAuthScreen] Detected credential-already-in-use error');
+          } else {
+            // Show the actual error for debugging
+            errorMessage = 'Sign up failed: ${e.toString()}';
           }
         }
         // For sign-in, use generic message to prevent account enumeration
+        
+        debugPrint('[EmailAuthScreen] Setting error message: $errorMessage');
         
         setState(() {
           _authError = errorMessage;
           _isLoading = false;
         });
+        
+        debugPrint('[EmailAuthScreen] Error state updated, loading: $_isLoading');
+      } else {
+        debugPrint('[EmailAuthScreen] Widget not mounted, cannot update state');
       }
     }
   }

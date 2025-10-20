@@ -35,12 +35,26 @@ class AuthProvider with ChangeNotifier {
   Future<void> _markHasSignedInWithEmail() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_ever_signed_in_with_email', true);
+    // Clear auth wall flag when user signs in with email
+    await prefs.setBool('auth_wall_triggered', false);
   }
   
   /// Check if user has ever signed in with email
   static Future<bool> hasEverSignedInWithEmail() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('has_ever_signed_in_with_email') ?? false;
+  }
+  
+  /// Mark that user has hit the auth wall (persists across app restarts)
+  static Future<void> markAuthWallTriggered() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auth_wall_triggered', true);
+  }
+  
+  /// Check if user has hit the auth wall
+  static Future<bool> hasHitAuthWall() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('auth_wall_triggered') ?? false;
   }
 
   Future<void> signInAnonymously() async {
@@ -125,8 +139,11 @@ class AuthProvider with ChangeNotifier {
   }) async {
     try {
       if (_user == null || !_user!.isAnonymous) {
+        debugPrint('[linkAnonymousToEmail] Error: No anonymous user to link');
         throw Exception('No anonymous user to link');
       }
+      
+      debugPrint('[linkAnonymousToEmail] Starting account linking for email: $email');
       
       // Create email/password credential
       final credential = EmailAuthProvider.credential(
@@ -135,11 +152,15 @@ class AuthProvider with ChangeNotifier {
       );
       
       // Link anonymous account to email/password
+      debugPrint('[linkAnonymousToEmail] Attempting to link credential...');
       final userCredential = await _user!.linkWithCredential(credential);
       _user = userCredential.user;
       
+      debugPrint('[linkAnonymousToEmail] Successfully linked! New UID: ${_user?.uid}');
+      
       // Store user preferences in Firestore
       if (_user != null) {
+        debugPrint('[linkAnonymousToEmail] Storing user preferences in Firestore...');
         await FirebaseFirestore.instance.collection('users').doc(_user!.uid).set({
           'email': email,
           'marketingOptIn': marketingOptIn,
@@ -154,12 +175,16 @@ class AuthProvider with ChangeNotifier {
       }
       
       // Mark that user has signed in with email
+      debugPrint('[linkAnonymousToEmail] Marking as signed in with email...');
       await _markHasSignedInWithEmail();
       
       await AnalyticsService.logEvent('account_upgraded');
       notifyListeners();
+      debugPrint('[linkAnonymousToEmail] Account linking completed successfully');
     } catch (e) {
-      debugPrint('Error linking anonymous account: $e');
+      debugPrint('[linkAnonymousToEmail] ERROR: $e');
+      debugPrint('[linkAnonymousToEmail] ERROR Type: ${e.runtimeType}');
+      debugPrint('[linkAnonymousToEmail] ERROR String: ${e.toString()}');
       rethrow;
     }
   }

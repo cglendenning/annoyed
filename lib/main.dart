@@ -15,6 +15,7 @@ import 'providers/preferences_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/email_auth_screen.dart';
+import 'screens/auth_gate_screen.dart';
 import 'utils/app_colors.dart';
 
 void main() async {
@@ -137,6 +138,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   bool _isCheckingOnboarding = true;
   bool _hasCompletedOnboarding = false;
   bool _hasEverSignedInWithEmail = false;
+  bool _hasHitAuthWall = false;
 
   @override
   void initState() {
@@ -163,11 +165,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     final completed = prefs.getBool('onboarding_completed') ?? false;
     final hasSignedIn = await AuthProvider.hasEverSignedInWithEmail();
+    final hasHitWall = await AuthProvider.hasHitAuthWall();
     
     if (mounted) {
       setState(() {
         _hasCompletedOnboarding = completed;
         _hasEverSignedInWithEmail = hasSignedIn;
+        _hasHitAuthWall = hasHitWall;
         _isCheckingOnboarding = false;
       });
     }
@@ -182,6 +186,16 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         body: Center(
           child: CircularProgressIndicator(),
         ),
+      );
+    }
+
+    // CRITICAL: If user has hit the auth wall and is still anonymous, show auth gate
+    // Once at the auth wall, always at the auth wall (until they sign up with email)
+    final isAnonymous = authProvider.user?.isAnonymous ?? true;
+    if (_hasHitAuthWall && isAnonymous) {
+      return const AuthGateScreen(
+        message: 'Sign Up Required',
+        subtitle: 'To continue using the app, please sign up to save your progress and unlock all features.',
       );
     }
 
