@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import '../models/auth_state.dart';
+import '../providers/auth_state_manager.dart';
 import '../utils/app_colors.dart';
 import '../utils/password_validator.dart';
 import '../utils/constants.dart';
@@ -47,6 +48,10 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     super.initState();
     _isSignUp = widget.initialMode == AuthMode.signUp;
     
+    // Listen for auth state changes to automatically dismiss this screen
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    authStateManager.addListener(_onAuthStateChanged);
+    
     // Add listeners to update password strength indicator in real-time
     _passwordController.addListener(() {
       // Clear auth error when user starts typing
@@ -85,10 +90,28 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
   
   @override
   void dispose() {
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    authStateManager.removeListener(_onAuthStateChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  /// Listen for successful authentication and dismiss this screen
+  void _onAuthStateChanged() {
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    
+    debugPrint('[EmailAuthScreen] Auth state changed: ${authStateManager.state}');
+    
+    // If we successfully authenticated, pop this screen
+    // AuthGate will handle showing the correct screen underneath
+    if (authStateManager.state == AuthState.authenticatedActive) {
+      debugPrint('[EmailAuthScreen] Authentication successful, dismissing screen');
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    }
   }
   
   String? _validateEmail(String? value) {
@@ -134,16 +157,16 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     });
     
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
       
       debugPrint('[EmailAuthScreen] Starting authentication...');
       debugPrint('[EmailAuthScreen] Mode: ${_isSignUp ? "Sign Up" : "Sign In"}, IsUpgrade: ${widget.isUpgrade}');
       
       if (_isSignUp) {
         if (widget.isUpgrade) {
-          // Link anonymous account to email/password
-          debugPrint('[EmailAuthScreen] Calling linkAnonymousToEmail...');
-          await authProvider.linkAnonymousToEmail(
+          // Upgrade anonymous account to email/password
+          debugPrint('[EmailAuthScreen] Calling upgradeToEmail...');
+          await authStateManager.upgradeToEmail(
             email: _emailController.text.trim(),
             password: _passwordController.text,
             marketingOptIn: _marketingOptIn,
@@ -151,7 +174,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         } else {
           // Regular sign up
           debugPrint('[EmailAuthScreen] Calling signUpWithEmail...');
-          await authProvider.signUpWithEmail(
+          await authStateManager.signUpWithEmail(
             email: _emailController.text.trim(),
             password: _passwordController.text,
             marketingOptIn: _marketingOptIn,
@@ -159,24 +182,20 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         }
       } else {
         debugPrint('[EmailAuthScreen] Calling signInWithEmail...');
-        await authProvider.signInWithEmail(
+        await authStateManager.signInWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       }
       
-      debugPrint('[EmailAuthScreen] Authentication successful, navigating...');
+      debugPrint('[EmailAuthScreen] Authentication successful');
       
-      // Navigation handled by AuthGate - clear stack and let AuthGate route
+      // AuthGate will automatically show the right screen based on state change
+      // No manual navigation needed!
       if (mounted) {
-        try {
-          // Pop all screens and return to root, letting AuthGate handle routing
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        } catch (e) {
-          // If popUntil fails, just pop current screen
-          debugPrint('[EmailAuthScreen] Navigation error: $e');
-          Navigator.of(context).pop();
-        }
+        setState(() {
+          _isLoading = false;
+        });
       }
     } catch (e) {
       debugPrint('[EmailAuthScreen] Authentication error caught: $e');
@@ -251,8 +270,8 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     });
     
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.resetPassword(email);
+      final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+      await authStateManager.resetPassword(email);
       _lastPasswordResetRequest = DateTime.now();
       
       if (mounted) {

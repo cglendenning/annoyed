@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 import '../widgets/animated_gradient_container.dart';
 import '../utils/app_colors.dart';
 import 'email_auth_screen.dart';
@@ -110,6 +108,8 @@ class AuthGateScreen extends StatelessWidget {
               const Spacer(),
               
               // Sign up button
+              // Note: No manual navigation needed! When user completes sign-up,
+              // AuthGate will automatically detect the state change and show HomeScreen
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -124,7 +124,7 @@ class AuthGateScreen extends StatelessWidget {
                     duration: const Duration(seconds: 3),
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.of(context).pushReplacement(
+                        Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => const EmailAuthScreen(
                               isUpgrade: true,

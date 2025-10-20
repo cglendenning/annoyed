@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_state_manager.dart';
 import '../providers/preferences_provider.dart';
 import '../services/analytics_service.dart';
 
@@ -75,11 +75,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
       // Check if user is now premium
       if (customerInfo.entitlements.all['premium']?.isActive == true) {
         // Update user preferences
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
         final prefsProvider =
             Provider.of<PreferencesProvider>(context, listen: false);
 
-        final uid = authProvider.userId;
+        final uid = authStateManager.userId;
         if (uid != null) {
           // Set pro_until to a year from now (or based on subscription)
           final proUntil = DateTime.now().add(const Duration(days: 365));
@@ -125,11 +125,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
       final customerInfo = await Purchases.restorePurchases();
       
       if (customerInfo.entitlements.all['premium']?.isActive == true) {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
         final prefsProvider =
             Provider.of<PreferencesProvider>(context, listen: false);
 
-        final uid = authProvider.userId;
+        final uid = authStateManager.userId;
         if (uid != null) {
           final proUntil = DateTime.now().add(const Duration(days: 365));
           await prefsProvider.updateProStatus(uid: uid, proUntil: proUntil);

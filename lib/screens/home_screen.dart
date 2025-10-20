@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_state_manager.dart';
 import '../providers/annoyance_provider.dart';
 import '../services/speech_service.dart';
 import '../services/firebase_service.dart';
@@ -55,11 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
     final annoyanceProvider =
         Provider.of<AnnoyanceProvider>(context, listen: false);
 
-    final uid = authProvider.userId;
+    final uid = authStateManager.userId;
     if (uid != null) {
       await annoyanceProvider.loadAnnoyances(uid);
     }
@@ -167,14 +167,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _isSaving = true;
     });
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
     final annoyanceProvider =
         Provider.of<AnnoyanceProvider>(context, listen: false);
 
-    final uid = authProvider.userId;
-    debugPrint('[HomeScreen] Saving annoyance - uid: $uid, isAuthenticated: ${authProvider.isAuthenticated}');
+    final uid = authStateManager.userId;
+    debugPrint('[HomeScreen] Saving annoyance - uid: $uid, isAuthenticated: ${authStateManager.isAuthenticated}');
     
-    if (uid != null && authProvider.isAuthenticated) {
+    if (uid != null && authStateManager.isAuthenticated) {
       // Show transcribing snackbar
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -212,24 +212,14 @@ class _HomeScreenState extends State<HomeScreen> {
           );
           
           final annoyanceCount = annoyanceProvider.annoyances.length;
-          final isAnonymous = authProvider.user?.isAnonymous ?? false;
+          final isAnonymous = authStateManager.isAnonymous;
           
-          // Check if user has reached the threshold and is still anonymous (show auth gate)
+          // Check if user has reached the threshold and is still anonymous (trigger auth wall)
           if (annoyanceCount >= AppConstants.annoyancesForAuthGate && isAnonymous) {
-            // Mark that the auth wall has been triggered (persists across app restarts)
-            await AuthProvider.markAuthWallTriggered();
-            
-            await Future.delayed(const Duration(milliseconds: 1500));
-            if (mounted) {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const AuthGateScreen(
-                    message: 'You\'re on a roll! 🎉',
-                    subtitle: 'You\'ve recorded 5 annoyances. Sign up now to unlock coaching insights and keep your progress forever!',
-                  ),
-                ),
-              );
-            }
+            // Trigger auth wall via state manager - it will update the state
+            // and AuthGate will automatically show the auth wall screen
+            await authStateManager.triggerAuthWall();
+            // No manual navigation needed! State change will trigger UI update
           }
           // Auto-generate coaching: after 1st annoyance, then every 5 NEW annoyances after that
           // Pattern: annoyance #1 -> coaching #1, annoyance #6 -> coaching #2, annoyance #11 -> coaching #3, etc.
@@ -292,9 +282,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authStateManager = Provider.of<AuthStateManager>(context);
     final annoyanceProvider = Provider.of<AnnoyanceProvider>(context);
-    final isAnonymous = authProvider.user?.isAnonymous ?? true;
+    final isAnonymous = authStateManager.isAnonymous;
 
     return Scaffold(
       appBar: AppBar(
@@ -303,27 +293,8 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-          // Login status indicator
-          if (isAnonymous)
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const EmailAuthScreen(
-                      initialMode: AuthMode.signIn,
-                    ),
-                  ),
-                );
-              },
-              child: const Text(
-                'Sign In',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
-          else
+          // Premium indicator (no sign-in button for anonymous users - they'll hit auth wall at 5 annoyances)
+          if (!isAnonymous)
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
               child: Row(

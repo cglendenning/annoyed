@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_state_manager.dart';
 import '../providers/annoyance_provider.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
@@ -52,8 +52,8 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   
   // Check if this is the first coaching to skip commitment gate
   Future<void> _checkIfFirstCoaching() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final uid = authProvider.userId;
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final uid = authStateManager.userId;
     
     if (uid != null) {
       try {
@@ -121,8 +121,8 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
       _isGenerating = true;
     });
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final uid = authProvider.userId;
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final uid = authStateManager.userId;
 
     if (uid == null) {
       setState(() {
@@ -303,8 +303,8 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   Future<void> _handleResonance(String resonance) async {
     if (_coaching == null || _hasGivenFeedback) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final uid = authProvider.userId;
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final uid = authStateManager.userId;
 
     if (uid != null) {
       try {

@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import '../providers/auth_provider.dart';
+import '../providers/auth_state_manager.dart';
 import '../services/analytics_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/animated_gradient_container.dart';
-import 'email_auth_screen.dart';
-import 'how_it_works_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback? onComplete;
@@ -126,26 +123,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await AnalyticsService.logPermissionMicGranted();
     }
 
-    // Sign in anonymously to complete setup
-    if (mounted) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      try {
-        await authProvider.signInAnonymously();
-      } catch (e) {
-        debugPrint('Error signing in anonymously: $e');
-      }
-    }
-
-    // Mark onboarding as complete (this is the last step)
+    // Complete onboarding - AuthStateManager will handle anonymous sign-in
     await _completeOnboarding();
   }
 
   Future<void> _completeOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_completed', true);
-    
-    // Notify parent to re-check onboarding status
-    widget.onComplete?.call();
+    if (mounted) {
+      final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+      try {
+        // This will save the flag AND sign in anonymously
+        await authStateManager.completeOnboarding();
+        
+        // Notify parent (optional, state change will trigger UI update anyway)
+        widget.onComplete?.call();
+      } catch (e) {
+        debugPrint('Error completing onboarding: $e');
+      }
+    }
   }
 }
 
@@ -286,20 +280,6 @@ class _IntroPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const EmailAuthScreen(
-                    initialMode: AuthMode.signIn,
-                  ),
-                ),
-              );
-            },
-            child: const Text('Already have an account? Sign In'),
-          ),
-          const SizedBox(height: 16),
           const Text(
             'Your data stays private and secure',
             style: TextStyle(

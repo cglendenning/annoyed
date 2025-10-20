@@ -2,11 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
-import 'dart:math';
 import '../models/annoyance.dart';
 import '../models/suggestion.dart';
 import '../models/user_preferences.dart';
@@ -19,76 +14,6 @@ class FirebaseService {
   // Current user
   static User? get currentUser => _auth.currentUser;
   static String? get currentUserId => _auth.currentUser?.uid;
-
-  // Auth methods
-  static Future<UserCredential> signInAnonymously() async {
-    return await _auth.signInAnonymously();
-  }
-
-  static Future<UserCredential> signInWithApple() async {
-    // Generate a random nonce for security
-    final rawNonce = _generateNonce();
-    final nonce = _sha256ofString(rawNonce);
-
-    // Request Apple Sign In
-    final appleCredential = await SignInWithApple.getAppleIDCredential(
-      scopes: [
-        AppleIDAuthorizationScopes.email,
-        AppleIDAuthorizationScopes.fullName,
-      ],
-      nonce: nonce,
-    );
-
-    // Create OAuth credential for Firebase
-    final oauthCredential = OAuthProvider("apple.com").credential(
-      idToken: appleCredential.identityToken,
-      rawNonce: rawNonce,
-    );
-
-    // Sign in to Firebase with Apple credential
-    return await _auth.signInWithCredential(oauthCredential);
-  }
-
-  static Future<UserCredential> signInWithGoogle() async {
-    // TODO: Fix for google_sign_in v7 API changes
-    throw UnimplementedError('Google Sign In temporarily disabled - use email/Apple sign in');
-    
-    // // Trigger the authentication flow
-    // final GoogleSignInAccount? googleUser = await GoogleSignIn().signInSilently() ?? await GoogleSignIn().signInInteractively();
-    // 
-    // if (googleUser == null) {
-    //   // User canceled the sign-in
-    //   throw Exception('Google Sign In was cancelled');
-    // }
-    //
-    // // Obtain the auth details from the request
-    // final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    //
-    // // Create a new credential
-    // final credential = GoogleAuthProvider.credential(
-    //   accessToken: googleAuth.serverAuthCode,
-    //   idToken: googleAuth.idToken,
-    // );
-    //
-    // // Sign in to Firebase with Google credential
-    // return await _auth.signInWithCredential(credential);
-  }
-
-  static String _generateNonce([int length = 32]) {
-    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-    final random = Random.secure();
-    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
-  }
-
-  static String _sha256ofString(String input) {
-    final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  static Future<void> signOut() async {
-    await _auth.signOut();
-  }
 
   // Collections
   static CollectionReference get usersCollection => _firestore.collection('users');

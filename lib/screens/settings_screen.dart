@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import '../providers/auth_provider.dart';
+import '../providers/auth_state_manager.dart';
 import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/app_colors.dart';
@@ -75,11 +75,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   Future<void> _exportData() async {
     debugPrint('[Settings] Export data started');
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
     
-    debugPrint('[Settings] Auth status: ${authProvider.isAuthenticated}, UID: ${authProvider.userId}');
+    debugPrint('[Settings] Auth status: ${authStateManager.isAuthenticated}, UID: ${authStateManager.userId}');
     
-    if (!authProvider.isAuthenticated) {
+    if (!authStateManager.isAuthenticated) {
       debugPrint('[Settings] User not authenticated, showing error');
       _showErrorDialog(
         'Sign In Required',
@@ -116,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     
     try {
-      final uid = authProvider.userId!;
+      final uid = authStateManager.userId!;
       debugPrint('[Settings] Fetching data for uid: $uid');
       
       // Fetch all user data
@@ -295,10 +295,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
   
   Future<void> _deleteAllData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
     
     // Check if user is signed in
-    if (!authProvider.isAuthenticated) {
+    if (!authStateManager.isAuthenticated) {
       if (mounted) {
         _showErrorDialog(
           'Sign In Required',
@@ -412,7 +412,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         
         // First, try to delete the account
         try {
-          await authProvider.deleteAccount();
+          await authStateManager.deleteAccount();
         } on firebase_auth.FirebaseAuthException catch (e) {
           if (e.code == 'requires-recent-login') {
             debugPrint('[Settings] Requires recent login, prompting for password');
@@ -495,8 +495,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }
             
             // Re-authenticate and try again
-            await authProvider.reauthenticateWithPassword(password);
-            await authProvider.deleteAccount();
+            await authStateManager.reauthenticateWithPassword(password);
+            await authStateManager.deleteAccount();
           } else {
             rethrow;
           }
@@ -852,14 +852,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          Consumer<AuthProvider>(
-            builder: (context, authProvider, _) {
-              if (authProvider.isAuthenticated && authProvider.userEmail != null) {
+          Consumer<AuthStateManager>(
+            builder: (context, authManager, _) {
+              if (authManager.isAuthenticated && authManager.userEmail != null) {
                 return Column(
                   children: [
                     ListTile(
                       title: const Text('Email'),
-                      subtitle: Text(authProvider.userEmail!),
+                      subtitle: Text(authManager.userEmail!),
                       leading: const Icon(Icons.email, color: AppColors.primaryTeal),
                     ),
                     ListTile(
@@ -886,24 +886,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         );
                         
                         if (confirm == true && mounted) {
-                          await authProvider.signOut();
-                          if (mounted) {
-                            // Navigate to sign-in screen, removing all routes
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (context) => const EmailAuthScreen(
-                                  initialMode: AuthMode.signIn,
-                                ),
-                              ),
-                              (route) => false, // Remove all previous routes
-                            );
-                          }
+                          await authManager.signOut();
+                          // AuthGate will automatically show the right screen
+                          // No manual navigation needed!
                         }
                       },
                     ),
                   ],
                 );
-              } else if (authProvider.isAuthenticated) {
+              } else if (authManager.isAuthenticated) {
                 return ListTile(
                   title: const Text('Sign In'),
                   subtitle: const Text('Sign up or sign in to save your data'),
@@ -945,7 +936,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: _exportData,
           ),
-          Consumer<AuthProvider>(
+          Consumer<AuthStateManager>(
             builder: (context, authProvider, _) {
               return SwitchListTile(
                 title: const Text('Analytics'),

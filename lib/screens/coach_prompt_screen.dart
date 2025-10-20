@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_state_manager.dart';
 import '../providers/annoyance_provider.dart';
 import '../providers/suggestion_provider.dart';
 import '../providers/preferences_provider.dart';
@@ -78,7 +78,7 @@ class CoachPromptScreen extends StatelessWidget {
                         
                         // Generate suggestion
                         if (context.mounted) {
-                          final authProvider = Provider.of<AuthProvider>(
+                          final authStateManager = Provider.of<AuthStateManager>(
                             context,
                             listen: false,
                           );
@@ -98,7 +98,7 @@ class CoachPromptScreen extends StatelessWidget {
                             listen: false,
                           );
 
-                          final uid = authProvider.userId;
+                          final uid = authStateManager.userId;
                           if (uid == null) {
                             Navigator.of(context).pop();
                             return;

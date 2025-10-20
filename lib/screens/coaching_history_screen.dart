@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_state_manager.dart';
 import '../services/firebase_service.dart';
 import '../utils/app_colors.dart';
 
@@ -27,8 +27,8 @@ class _CoachingHistoryScreenState extends State<CoachingHistoryScreen> {
       _isLoading = true;
     });
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final uid = authProvider.userId;
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final uid = authStateManager.userId;
 
     if (uid != null) {
       try {
@@ -80,8 +80,8 @@ class _CoachingHistoryScreenState extends State<CoachingHistoryScreen> {
   }
 
   Future<void> _toggleHeart(Map<String, dynamic> coaching) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final uid = authProvider.userId;
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final uid = authStateManager.userId;
     
     if (uid == null) return;
 

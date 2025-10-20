@@ -8,7 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 import 'firebase_options.dart';
-import 'providers/auth_provider.dart';
+import 'models/auth_state.dart';
+import 'providers/auth_state_manager.dart';
 import 'providers/annoyance_provider.dart';
 import 'providers/suggestion_provider.dart';
 import 'providers/preferences_provider.dart';
@@ -85,7 +86,11 @@ class AnnoyedApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final manager = AuthStateManager();
+          manager.initialize(); // Start listening to Firebase Auth
+          return manager;
+        }),
         ChangeNotifierProvider(create: (_) => AnnoyanceProvider()),
         ChangeNotifierProvider(create: (_) => SuggestionProvider()),
         ChangeNotifierProvider(create: (_) => PreferencesProvider()),
@@ -127,140 +132,137 @@ class AnnoyedApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatefulWidget {
+/// AuthGate: Declarative router that shows the appropriate screen based on AuthState
+/// No more complex navigation logic - just a simple switch statement!
+class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
-  bool _isCheckingOnboarding = true;
-  bool _hasCompletedOnboarding = false;
-  bool _hasEverSignedInWithEmail = false;
-  bool _hasHitAuthWall = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _checkOnboarding();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      // Re-check onboarding when app resumes
-      _checkOnboarding();
-    }
-  }
-
-  Future<void> _checkOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    final completed = prefs.getBool('onboarding_completed') ?? false;
-    final hasSignedIn = await AuthProvider.hasEverSignedInWithEmail();
-    final hasHitWall = await AuthProvider.hasHitAuthWall();
-    
-    debugPrint('[AuthGate] _checkOnboarding results:');
-    debugPrint('[AuthGate] - onboarding_completed: $completed');
-    debugPrint('[AuthGate] - hasEverSignedInWithEmail: $hasSignedIn');
-    debugPrint('[AuthGate] - hasHitAuthWall: $hasHitWall');
-    
-    if (mounted) {
-      setState(() {
-        _hasCompletedOnboarding = completed;
-        _hasEverSignedInWithEmail = hasSignedIn;
-        _hasHitAuthWall = hasHitWall;
-        _isCheckingOnboarding = false;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+    return Consumer<AuthStateManager>(
+      builder: (context, authManager, child) {
+        debugPrint('[AuthGate] Current state: ${authManager.state}');
 
-    debugPrint('[AuthGate] build() called');
-    debugPrint('[AuthGate] - _isCheckingOnboarding: $_isCheckingOnboarding');
-    debugPrint('[AuthGate] - authProvider.isLoading: ${authProvider.isLoading}');
-    debugPrint('[AuthGate] - authProvider.isAuthenticated: ${authProvider.isAuthenticated}');
-    debugPrint('[AuthGate] - authProvider.user: ${authProvider.user?.uid}');
-    debugPrint('[AuthGate] - _hasCompletedOnboarding: $_hasCompletedOnboarding');
-    debugPrint('[AuthGate] - _hasEverSignedInWithEmail: $_hasEverSignedInWithEmail');
-    debugPrint('[AuthGate] - _hasHitAuthWall: $_hasHitAuthWall');
+        // Simple switch on auth state - declarative routing!
+        switch (authManager.state) {
+          case AuthState.initializing:
+            return _buildLoadingScreen();
 
-    if (_isCheckingOnboarding || authProvider.isLoading) {
-      debugPrint('[AuthGate] Showing loading screen');
-      return Scaffold(
-        body: Center(
+          case AuthState.needsOnboarding:
+          case AuthState.onboardingInProgress:
+            return OnboardingScreen(
+              onComplete: () {
+                // Let AuthStateManager handle the state transition
+                // It will automatically sign in anonymously
+              },
+            );
+
+          case AuthState.anonymousActive:
+          case AuthState.authenticatedActive:
+            return const HomeScreen();
+
+          case AuthState.anonymousAtAuthWall:
+            // HARD gate - user must sign up, no "continue as guest"
+            return const AuthGateScreen(
+              message: 'Sign Up Required',
+              subtitle: 'To continue using the app, please sign up to save your progress and unlock all features.',
+            );
+
+          case AuthState.upgradingAnonymous:
+          case AuthState.signingIn:
+          case AuthState.signingOut:
+            return _buildLoadingScreen(message: 'Please wait...');
+
+          case AuthState.authError:
+            return _buildErrorScreen(
+              context,
+              authManager.errorMessage ?? 'An error occurred',
+              authManager,
+            );
+        }
+      },
+    );
+  }
+
+  Widget _buildLoadingScreen({String? message}) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            if (message != null) ...[
+              const SizedBox(height: 20),
+              Text(
+                message,
+                style: const TextStyle(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorScreen(
+    BuildContext context,
+    String errorMessage,
+    AuthStateManager authManager,
+  ) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 20),
-              // Debug button to clear all data
-              ElevatedButton(
-                onPressed: () async {
-                  debugPrint('[AuthGate] DEBUG: Clearing all SharedPreferences...');
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.clear();
-                  debugPrint('[AuthGate] DEBUG: SharedPreferences cleared!');
-                  // Restart the app by re-checking onboarding
-                  _checkOnboarding();
-                },
-                child: const Text('DEBUG: Clear All Data'),
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Something Went Wrong',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                errorMessage,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => authManager.retryLastOperation(),
+                  child: const Text(
+                    'Try Again',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => authManager.cancelOperation(),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             ],
           ),
         ),
-      );
-    }
-
-    // CRITICAL: If user has hit the auth wall and is still anonymous, show auth gate
-    // Once at the auth wall, always at the auth wall (until they sign up with email)
-    final isAnonymous = authProvider.user?.isAnonymous ?? true;
-    if (_hasHitAuthWall && isAnonymous) {
-      debugPrint('[AuthGate] Showing auth gate screen');
-      return const AuthGateScreen(
-        message: 'Sign Up Required',
-        subtitle: 'To continue using the app, please sign up to save your progress and unlock all features.',
-      );
-    }
-
-    // If user has signed in with email before but is currently signed out,
-    // show sign-in page instead of onboarding
-    if (_hasEverSignedInWithEmail) {
-      debugPrint('[AuthGate] Showing email auth screen (returning user)');
-      return const EmailAuthScreen(
-        initialMode: AuthMode.signIn,
-      );
-    }
-
-    // New user - show onboarding if not completed
-    if (!_hasCompletedOnboarding) {
-      debugPrint('[AuthGate] Showing onboarding screen');
-      return OnboardingScreen(
-        onComplete: () {
-          // Re-check onboarding status when completed
-          _checkOnboarding();
-        },
-      );
-    }
-
-    // If user is authenticated (and has completed onboarding), show home screen
-    if (authProvider.isAuthenticated) {
-      debugPrint('[AuthGate] Showing home screen (authenticated)');
-      return const HomeScreen();
-    }
-
-    // Fallback - should not reach here
-    debugPrint('[AuthGate] FALLBACK: Showing home screen (unexpected state)');
-    return const HomeScreen();
+      ),
+    );
   }
 }
