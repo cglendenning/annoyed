@@ -24,9 +24,12 @@ class AuthProvider with ChangeNotifier {
   }
 
   void _init() {
+    debugPrint('[AuthProvider] Initializing...');
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      debugPrint('[AuthProvider] Auth state changed: user=${user?.uid}, isAnonymous=${user?.isAnonymous}');
       _user = user;
       _isLoading = false;
+      debugPrint('[AuthProvider] Updated state: isAuthenticated=$isAuthenticated, isLoading=$isLoading');
       notifyListeners();
     });
   }

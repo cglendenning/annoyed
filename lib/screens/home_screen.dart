@@ -172,7 +172,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Provider.of<AnnoyanceProvider>(context, listen: false);
 
     final uid = authProvider.userId;
-    if (uid != null) {
+    debugPrint('[HomeScreen] Saving annoyance - uid: $uid, isAuthenticated: ${authProvider.isAuthenticated}');
+    
+    if (uid != null && authProvider.isAuthenticated) {
       // Show transcribing snackbar
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -242,6 +244,17 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           }
         }
+      }
+    } else {
+      debugPrint('[HomeScreen] ERROR: Cannot save annoyance - no authenticated user!');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Not authenticated. Please restart the app.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
     }
 

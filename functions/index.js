@@ -408,6 +408,9 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
         type: data.type
       };
     });
+    
+    // Check if this is the FIRST coaching (special onboarding experience)
+    const isFirstCoaching = allPastCoaching.length === 0;
 
     // Separate what worked from what didn't
     const hellYes = allPastCoaching.filter(c => c.resonance === 'hell_yes').map(c => c.recommendation);
@@ -454,9 +457,29 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
     const timestamp = Date.now();
     const randomSeed = Math.floor(Math.random() * 1000000);
     
+    // Special instructions for the FIRST coaching (onboarding + education)
+    let firstCoachingInstructions = '';
+    if (isFirstCoaching) {
+      firstCoachingInstructions = `
+      
+SPECIAL: This is their FIRST coaching session! Make it educational and onboarding-friendly.
+
+In your explanation, naturally weave in these educational points to help them understand how the system works:
+
+1. CATEGORIES: Explain that every annoyance gets automatically categorized into one of 5 types: Boundaries (personal limits, saying no), Environment (physical space, noise), Life Systems (routines, organization), Communication (expressing yourself, being heard), and Energy (emotional state, motivation). They can see patterns forming through these color-coded categories.
+
+2. TWO-PART COACHING: Explain that every coaching includes BOTH a mindset shift (a new way of thinking) AND an action step (concrete behavior change). The mindset shift helps them see situations differently, while the action step gives them something practical to implement today.
+
+3. THE PROCESS: Explain how this works: They capture what annoys them as it happens (raw and unfiltered), then after every 5 entries, AI analyzes their patterns and identifies themes, then they get personalized coaching with both mindset + action, and finally they apply it and feel the difference.
+
+4. PRIVACY: Mention that their audio never leaves their phone - only redacted text is sent for AI coaching, keeping their data private and secure.
+
+Weave these educational points NATURALLY into your explanation - don't make it feel like a manual. Make it feel like you're teaching them while coaching them. This is their first experience with the system, so help them understand what's happening while also giving them real value.`;
+    }
+    
     const prompt = `You are a direct, no-BS coach analyzing someone's annoyance patterns.
 
-[Request ID: ${timestamp}-${randomSeed}] - This is a NEW request. You must give a COMPLETELY DIFFERENT recommendation than any previous ones.
+[Request ID: ${timestamp}-${randomSeed}] - This is a NEW request. You must give a COMPLETELY DIFFERENT recommendation than any previous ones.${firstCoachingInstructions}
 
 Their patterns:
 - Top issue: ${topCategory} (${topCategoryPercent}% of ${totalCount} annoyances)
@@ -589,6 +612,9 @@ Respond in JSON:
     if (!['mindset_shift', 'behavior_change'].includes(result.type)) {
       result.type = 'mindset_shift';
     }
+    
+    // Mark if this is the first coaching (so app can skip prompt screen)
+    result.isFirstCoaching = isFirstCoaching;
 
     // Log cost
     const cost = ((tokensIn * 0.00015) + (tokensOut * 0.0006)) / 1000;

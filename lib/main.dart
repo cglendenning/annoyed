@@ -167,6 +167,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     final hasSignedIn = await AuthProvider.hasEverSignedInWithEmail();
     final hasHitWall = await AuthProvider.hasHitAuthWall();
     
+    debugPrint('[AuthGate] _checkOnboarding results:');
+    debugPrint('[AuthGate] - onboarding_completed: $completed');
+    debugPrint('[AuthGate] - hasEverSignedInWithEmail: $hasSignedIn');
+    debugPrint('[AuthGate] - hasHitAuthWall: $hasHitWall');
+    
     if (mounted) {
       setState(() {
         _hasCompletedOnboarding = completed;
@@ -181,10 +186,38 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
 
+    debugPrint('[AuthGate] build() called');
+    debugPrint('[AuthGate] - _isCheckingOnboarding: $_isCheckingOnboarding');
+    debugPrint('[AuthGate] - authProvider.isLoading: ${authProvider.isLoading}');
+    debugPrint('[AuthGate] - authProvider.isAuthenticated: ${authProvider.isAuthenticated}');
+    debugPrint('[AuthGate] - authProvider.user: ${authProvider.user?.uid}');
+    debugPrint('[AuthGate] - _hasCompletedOnboarding: $_hasCompletedOnboarding');
+    debugPrint('[AuthGate] - _hasEverSignedInWithEmail: $_hasEverSignedInWithEmail');
+    debugPrint('[AuthGate] - _hasHitAuthWall: $_hasHitAuthWall');
+
     if (_isCheckingOnboarding || authProvider.isLoading) {
-      return const Scaffold(
+      debugPrint('[AuthGate] Showing loading screen');
+      return Scaffold(
         body: Center(
-          child: CircularProgressIndicator(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              // Debug button to clear all data
+              ElevatedButton(
+                onPressed: () async {
+                  debugPrint('[AuthGate] DEBUG: Clearing all SharedPreferences...');
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  debugPrint('[AuthGate] DEBUG: SharedPreferences cleared!');
+                  // Restart the app by re-checking onboarding
+                  _checkOnboarding();
+                },
+                child: const Text('DEBUG: Clear All Data'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -193,20 +226,17 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // Once at the auth wall, always at the auth wall (until they sign up with email)
     final isAnonymous = authProvider.user?.isAnonymous ?? true;
     if (_hasHitAuthWall && isAnonymous) {
+      debugPrint('[AuthGate] Showing auth gate screen');
       return const AuthGateScreen(
         message: 'Sign Up Required',
         subtitle: 'To continue using the app, please sign up to save your progress and unlock all features.',
       );
     }
 
-    // If user is authenticated, show home screen
-    if (authProvider.isAuthenticated) {
-      return const HomeScreen();
-    }
-
     // If user has signed in with email before but is currently signed out,
     // show sign-in page instead of onboarding
     if (_hasEverSignedInWithEmail) {
+      debugPrint('[AuthGate] Showing email auth screen (returning user)');
       return const EmailAuthScreen(
         initialMode: AuthMode.signIn,
       );
@@ -214,6 +244,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
     // New user - show onboarding if not completed
     if (!_hasCompletedOnboarding) {
+      debugPrint('[AuthGate] Showing onboarding screen');
       return OnboardingScreen(
         onComplete: () {
           // Re-check onboarding status when completed
@@ -222,6 +253,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       );
     }
 
+    // If user is authenticated (and has completed onboarding), show home screen
+    if (authProvider.isAuthenticated) {
+      debugPrint('[AuthGate] Showing home screen (authenticated)');
+      return const HomeScreen();
+    }
+
+    // Fallback - should not reach here
+    debugPrint('[AuthGate] FALLBACK: Showing home screen (unexpected state)');
     return const HomeScreen();
   }
 }
