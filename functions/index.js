@@ -438,6 +438,11 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
       `${a.category}: "${a.trigger}"`
     ).join('\n');
     
+    console.log('\n========== ALL ANNOYANCES LIST ==========');
+    console.log(`Total annoyances: ${annoyances.length}`);
+    console.log(allAnnoyancesList);
+    console.log('=========================================\n');
+    
     // Determine confidence level based on data quantity
     let confidenceLevel = 'low';
     let patternStrength = 'weak';
