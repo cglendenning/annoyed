@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../providers/auth_state_manager.dart';
@@ -74,44 +75,124 @@ class _PaywallScreenState extends State<PaywallScreen> {
       final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
       final prefsProvider = Provider.of<PreferencesProvider>(context, listen: false);
       
-      final customerInfo = await Purchases.purchaseStoreProduct(product);
+      // Just call purchaseStoreProduct - if it succeeds without throwing, we're good
+      await Purchases.purchaseStoreProduct(product);
       
-      // Check if user is now premium
-      if (customerInfo.entitlements.all['premium']?.isActive == true) {
-        // Update user preferences
+      // If we get here, purchase succeeded - activate premium
+      final uid = authStateManager.userId;
+      if (uid != null) {
+        final proUntil = DateTime.now().add(const Duration(days: 365));
+        await prefsProvider.updateProStatus(uid: uid, proUntil: proUntil);
+      }
 
-        final uid = authStateManager.userId;
-        if (uid != null) {
-          // Set pro_until to a year from now (or based on subscription)
-          final proUntil = DateTime.now().add(const Duration(days: 365));
-          await prefsProvider.updateProStatus(uid: uid, proUntil: proUntil);
+      await AnalyticsService.logTrialStart();
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        // Navigate to post-subscription screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const PostSubscriptionScreen(),
+          ),
+        );
+      }
+    } on PlatformException catch (e) {
+      debugPrint('[PaywallScreen] Purchase error: ${e.code} - ${e.message}');
+      debugPrint('[PaywallScreen] Error details: ${e.details}');
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      
+      // Error code 8 = INVALID_RECEIPT
+      // This often happens in sandbox/TestFlight but purchase may have succeeded
+      if (e.code == '8') {
+        debugPrint('[PaywallScreen] Receipt validation error - checking if purchase actually succeeded');
+        
+        // Wait a moment and check subscription status
+        await Future.delayed(const Duration(seconds: 1));
+        
+        try {
+          // Sync and check status
+          await Purchases.syncPurchases();
+          final customerInfo = await Purchases.getCustomerInfo();
+          
+          debugPrint('[PaywallScreen] Post-error check: premium=${customerInfo.entitlements.all['premium']?.isActive}');
+          
+          // If premium is active, the purchase actually succeeded despite the error
+          if (customerInfo.entitlements.all['premium']?.isActive == true) {
+            debugPrint('[PaywallScreen] Purchase succeeded despite receipt error!');
+            
+            final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+            final prefsProvider = Provider.of<PreferencesProvider>(context, listen: false);
+            
+            final uid = authStateManager.userId;
+            if (uid != null) {
+              final proUntil = DateTime.now().add(const Duration(days: 365));
+              await prefsProvider.updateProStatus(uid: uid, proUntil: proUntil);
+            }
+
+            await AnalyticsService.logTrialStart();
+
+            if (mounted) {
+              // Navigate to success screen
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const PostSubscriptionScreen(),
+                ),
+              );
+            }
+            return; // Success - exit early
+          }
+        } catch (checkError) {
+          debugPrint('[PaywallScreen] Error checking subscription status: $checkError');
         }
-
-        await AnalyticsService.logTrialStart();
-
+        
+        // Purchase didn't work - show helpful message
         if (mounted) {
-          // Navigate to post-subscription screen instead of just popping
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const PostSubscriptionScreen(),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Receipt validation failed. This sometimes happens in test mode. Try "Restore Purchases" to verify your subscription.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 6),
+            ),
+          );
+        }
+      } else if (!e.details.toString().contains('userCancelled: true')) {
+        // Other errors (that aren't user cancellation)
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Purchase failed: ${e.message ?? e.code}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Purchase failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
+      // Any other error type
+      debugPrint('[PaywallScreen] Unexpected purchase error: $e');
+      
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+        
+        if (!e.toString().contains('UserCancelled')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Purchase failed: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     }
   }
