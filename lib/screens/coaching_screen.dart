@@ -58,12 +58,15 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
     if (uid != null) {
       try {
         final coachings = await FirebaseService.getAllCoachings(uid: uid);
-        if (coachings.isEmpty && widget.forceRegenerate) {
-          // This is the first coaching - skip commitment gate
-          debugPrint('[CoachingScreen] First coaching detected - skipping commitment gate');
+        if (coachings.isEmpty) {
+          // This is the first coaching - skip commitment gate AND force regeneration
+          debugPrint('[CoachingScreen] First coaching detected - skipping commitment gate and forcing regeneration');
           setState(() {
             _hasCommitted = true;
           });
+          // Force regeneration to ensure educational content is generated
+          _loadCoaching(forceRegenerate: true);
+          return;
         }
       } catch (e) {
         debugPrint('[CoachingScreen] Error checking coaching count: $e');
