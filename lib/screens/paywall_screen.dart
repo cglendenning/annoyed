@@ -4,6 +4,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../providers/auth_state_manager.dart';
 import '../providers/preferences_provider.dart';
 import '../services/analytics_service.dart';
+import 'post_subscription_screen.dart';
 
 class PaywallScreen extends StatefulWidget {
   final String? message;
@@ -89,11 +90,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
         await AnalyticsService.logTrialStart();
 
         if (mounted) {
-          Navigator.of(context).pop(true); // Return true to indicate success
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Welcome to Annoyed Premium!'),
-              backgroundColor: Colors.green,
+          // Navigate to post-subscription screen instead of just popping
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const PostSubscriptionScreen(),
             ),
           );
         }
@@ -136,11 +136,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
         }
 
         if (mounted) {
-          Navigator.of(context).pop(true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Purchases restored!'),
-              backgroundColor: Colors.green,
+          // Navigate to post-subscription screen for restored purchases too
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const PostSubscriptionScreen(),
             ),
           );
         }
@@ -243,29 +242,29 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
                   // Features
                   _FeatureTile(
-                    icon: Icons.timer,
-                    title: 'Longer recordings',
-                    subtitle: '90-second captures',
+                    icon: Icons.auto_awesome,
+                    title: '5x More AI Usage',
+                    subtitle: '\$0.50/month limit vs \$0.10 for free users',
                   ),
                   _FeatureTile(
-                    icon: Icons.insights,
-                    title: 'Deeper pattern insights',
-                    subtitle: 'Advanced analytics and trends',
+                    icon: Icons.psychology,
+                    title: 'More AI Coaching',
+                    subtitle: 'Generate more personalized coaching insights',
                   ),
                   _FeatureTile(
-                    icon: Icons.schedule,
-                    title: 'Custom preferred hours',
-                    subtitle: 'Fine-tune coach check-in times',
+                    icon: Icons.analytics,
+                    title: 'More AI Analysis',
+                    subtitle: 'Categorize and analyze more annoyances',
                   ),
                   _FeatureTile(
-                    icon: Icons.flash_on,
-                    title: 'Higher suggestion frequency',
-                    subtitle: 'Get suggestions more often',
+                    icon: Icons.lightbulb,
+                    title: 'More AI Suggestions',
+                    subtitle: 'Get more actionable suggestions for your patterns',
                   ),
                   _FeatureTile(
                     icon: Icons.support_agent,
-                    title: 'Priority support',
-                    subtitle: 'Fast response to questions',
+                    title: 'Priority Support',
+                    subtitle: 'Fast response to questions and issues',
                   ),
 
                   const SizedBox(height: 32),
