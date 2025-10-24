@@ -42,7 +42,7 @@ class HoldToRecordButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF0F766E).withOpacity(0.3),
+              color: const Color(0xFF0F766E).withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -90,7 +90,7 @@ class HoldToRecordButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.red.withOpacity(0.3),
+            color: Colors.red.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),

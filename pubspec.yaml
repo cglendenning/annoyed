@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.0-75.1.beta
+  sdk: ^3.9.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -67,12 +67,22 @@ dev_dependencies:
   # Testing
   integration_test:
     sdk: flutter
-  mockito: ^5.4.4
-  build_runner: ^2.4.13
+  mockito: ^5.5.1
+  build_runner: ^2.10.1
   fake_cloud_firestore: ^4.0.0
   
   # Linting
   flutter_lints: ^6.0.0
+
+# Force update transitive dependencies
+dependency_overrides:
+  characters: ^1.4.1
+  material_color_utilities: ^0.13.0
+  meta: ^1.17.0
+  test_api: ^0.7.7
+  analyzer: ^9.0.0
+  _fe_analyzer_shared: ^92.0.0
+  rx: ^0.5.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

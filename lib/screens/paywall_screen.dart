@@ -37,7 +37,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       debugPrint('[RevenueCat] Loading products directly...');
       final products = await Purchases.getProducts(
         ['com.cglendenning.annoyed.premium.monthly', 'com.cglendenning.annoyed.premium.annual'],
-        type: PurchaseType.subs,
+        productCategory: ProductCategory.subscription,
       );
       debugPrint('[RevenueCat] Products loaded: ${products.length}');
       for (var product in products) {
@@ -70,14 +70,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
     });
 
     try {
+      final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+      final prefsProvider = Provider.of<PreferencesProvider>(context, listen: false);
+      
       final customerInfo = await Purchases.purchaseStoreProduct(product);
       
       // Check if user is now premium
       if (customerInfo.entitlements.all['premium']?.isActive == true) {
         // Update user preferences
-        final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
-        final prefsProvider =
-            Provider.of<PreferencesProvider>(context, listen: false);
 
         final uid = authStateManager.userId;
         if (uid != null) {
@@ -122,12 +122,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
     });
 
     try {
+      final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+      final prefsProvider = Provider.of<PreferencesProvider>(context, listen: false);
+      
       final customerInfo = await Purchases.restorePurchases();
       
       if (customerInfo.entitlements.all['premium']?.isActive == true) {
-        final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
-        final prefsProvider =
-            Provider.of<PreferencesProvider>(context, listen: false);
 
         final uid = authStateManager.userId;
         if (uid != null) {
@@ -356,7 +356,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 }
 
 extension on PurchaseResult {
-  get entitlements => null;
+  dynamic get entitlements => null;
 }
 
 class _FeatureTile extends StatelessWidget {
@@ -424,7 +424,7 @@ class _ProductCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isRecommended
-              ? const Color(0xFF0F766E).withOpacity(0.1)
+              ? const Color(0xFF0F766E).withValues(alpha: 0.1)
               : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -486,88 +486,6 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-class _FallbackPricingCard extends StatelessWidget {
-  final String title;
-  final String price;
-  final bool isRecommended;
-  final VoidCallback onTap;
-
-  const _FallbackPricingCard({
-    required this.title,
-    required this.price,
-    required this.isRecommended,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isRecommended
-              ? const Color(0xFF0F766E).withOpacity(0.1)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isRecommended
-                ? const Color(0xFF0F766E)
-                : Colors.grey.shade300,
-            width: isRecommended ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (isRecommended) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F766E),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'BEST VALUE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Text(
-              price,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F766E),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 
 

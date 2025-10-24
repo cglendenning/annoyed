@@ -16,8 +16,6 @@ import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'entry_detail_screen.dart';
 import 'coaching_screen.dart';
-import 'auth_gate_screen.dart';
-import 'email_auth_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -475,13 +473,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.accentCoral.withOpacity(0.3),
+                            color: AppColors.accentCoral.withValues(alpha: 0.3),
                             blurRadius: 40,
                             spreadRadius: -5,
                             offset: const Offset(0, 10),
                           ),
                           BoxShadow(
-                            color: AppColors.primaryTeal.withOpacity(0.2),
+                            color: AppColors.primaryTeal.withValues(alpha: 0.2),
                             blurRadius: 30,
                             spreadRadius: 0,
                             offset: const Offset(0, 5),
@@ -504,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -530,11 +528,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(14),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.25),
+                                            color: Colors.white.withValues(alpha: 0.25),
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.white.withOpacity(0.3),
+                                                color: Colors.white.withValues(alpha: 0.3),
                                                 blurRadius: 15,
                                                 spreadRadius: 2,
                                               ),
@@ -591,7 +589,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   vertical: 3,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.white.withOpacity(0.25),
+                                                  color: Colors.white.withValues(alpha: 0.25),
                                                   borderRadius: BorderRadius.circular(8),
                                                 ),
                                                 child: const Text(
@@ -624,7 +622,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(

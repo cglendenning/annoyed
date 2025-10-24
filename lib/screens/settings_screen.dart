@@ -90,6 +90,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     // Show loading
     debugPrint('[Settings] Showing loading dialog');
+    final navigator = Navigator.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -168,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await Clipboard.setData(ClipboardData(text: jsonString));
       
       debugPrint('[Settings] Data copied, closing loading');
-      Navigator.of(context).pop(); // Close loading
+      navigator.pop(); // Close loading
       
       if (!mounted) return;
       
@@ -193,7 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -218,9 +219,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -258,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -296,6 +297,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   Future<void> _deleteAllData() async {
     final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final navigator = Navigator.of(context);
     
     // Check if user is signed in
     if (!authStateManager.isAuthenticated) {
@@ -418,9 +420,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             debugPrint('[Settings] Requires recent login, prompting for password');
             
             // Close loading dialog
-            if (mounted) Navigator.of(context).pop();
+            if (mounted) navigator.pop();
             
             // Prompt for password to re-authenticate
+            if (!mounted) return;
             final password = await showDialog<String>(
               context: context,
               barrierDismissible: false,
@@ -644,55 +647,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
   
-  void _showSuccessDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.check_circle_outline,
-                color: Colors.green.shade700,
-                size: 32,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -763,7 +717,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.stars, color: Color(0xFF0F766E)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () async {
-                await Navigator.of(context).push(
+                final navigator = Navigator.of(context);
+                await navigator.push(
                   MaterialPageRoute(
                     builder: (context) => const PaywallScreen(),
                   ),
@@ -779,7 +734,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.verified, color: Colors.green),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () async {
-                await Navigator.of(context).push(
+                final navigator = Navigator.of(context);
+                await navigator.push(
                   MaterialPageRoute(
                     builder: (context) => const SubscriptionStatusScreen(),
                   ),
@@ -795,6 +751,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () async {
               // Show loading
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -805,11 +763,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               
               try {
                 final customerInfo = await Purchases.restorePurchases();
-                Navigator.pop(context); // Close loading dialog
+                navigator.pop(); // Close loading dialog
                 
                 if (customerInfo.entitlements.all['premium']?.isActive == true) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       const SnackBar(
                         content: Text('✅ Purchases restored!'),
                         backgroundColor: Colors.green,
@@ -818,7 +776,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                 } else {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       const SnackBar(
                         content: Text('No active subscriptions found'),
                       ),
@@ -826,9 +784,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                 }
               } catch (e) {
-                Navigator.pop(context); // Close loading dialog
+                navigator.pop(); // Close loading dialog
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text('Restore failed: ${e.toString()}'),
                       backgroundColor: Colors.red,

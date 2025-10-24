@@ -7,7 +7,6 @@ import '../services/analytics_service.dart';
 import '../services/paywall_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/constants.dart';
-import '../widgets/animated_gradient_container.dart';
 import 'paywall_screen.dart';
 import 'coaching_history_screen.dart';
 
@@ -22,7 +21,6 @@ class CoachingScreen extends StatefulWidget {
 
 class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProviderStateMixin {
   bool _isLoading = true;
-  bool _showExplanation = false;
   bool _hasGivenFeedback = false;
   bool _hasCommitted = false; // Commitment gate
   String? _error;
@@ -359,21 +357,6 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
     }
   }
 
-  IconData _getTypeIcon() {
-    if (_coaching == null) return Icons.lightbulb_outline;
-    
-    return _coaching!['type'] == 'mindset_shift' 
-        ? Icons.psychology 
-        : Icons.fitness_center;
-  }
-
-  String _getTypeLabel() {
-    if (_coaching == null) return '';
-    
-    return _coaching!['type'] == 'mindset_shift' 
-        ? 'Mindset Shift' 
-        : 'Behavior Change';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -403,14 +386,14 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
               icon: const Icon(Icons.refresh, color: Colors.white),
               tooltip: 'Generate new coaching',
               onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 setState(() {
                   _hasGivenFeedback = false;
-                  _showExplanation = false;
                   _loadingMessageIndex = 0;
                 });
                 await _loadCoaching(forceRegenerate: true);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(
                       content: Text('Generated new coaching'),
                       duration: Duration(seconds: 1),
@@ -440,7 +423,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
           end: Alignment.bottomRight,
           colors: [
             const Color(0xFF0F766E),
-            const Color(0xFF0F766E).withOpacity(0.8),
+            const Color(0xFF0F766E).withValues(alpha: 0.8),
             AppColors.primaryTealDark,
           ],
         ),
@@ -456,10 +439,10 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       blurRadius: 50,
                       spreadRadius: 10,
                     ),
@@ -506,7 +489,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -529,7 +512,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFF0F766E),
                     elevation: 8,
-                    shadowColor: Colors.black.withOpacity(0.3),
+                    shadowColor: Colors.black.withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -553,7 +536,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
                   Navigator.of(context).pop();
                 },
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.white.withOpacity(0.7),
+                  foregroundColor: Colors.white.withValues(alpha: 0.7),
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                 ),
                 child: const Text(
@@ -643,7 +626,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
               'Coach Craig is reviewing your patterns',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -694,6 +677,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
 
     final recommendation = _coaching!['recommendation'] ?? '';
     final explanation = _coaching!['explanation'] ?? '';
+    final isFirstCoaching = _coaching!['isFirstCoaching'] == true;
 
     return Container(
       decoration: BoxDecoration(
@@ -702,7 +686,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
           end: Alignment.bottomCenter,
           colors: [
             const Color(0xFF0F766E),
-            const Color(0xFF0F766E).withOpacity(0.95),
+            const Color(0xFF0F766E).withValues(alpha: 0.95),
             AppColors.primaryTealDark,
           ],
         ),
@@ -710,199 +694,29 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
       child: SingleChildScrollView(
         child: Column(
           children: [
-            // Hero section with dramatic visual
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(40),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withOpacity(0.1),
-                    Colors.white.withOpacity(0.05),
-                  ],
-                ),
-              ),
-              child: Column(
-                children: [
-                  // Glowing badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentCoral,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accentCoral.withOpacity(0.5),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: const Text(
-                      'YOUR BREAKTHROUGH',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  const Icon(
-                    Icons.auto_awesome,
-                    size: 80,
-                    color: Colors.white,
-                  ),
-                ],
-              ),
-            ),
+            // Dynamic hero section with annoyance count
+            _buildDynamicHeroSection(isFirstCoaching),
 
-            // Main content
+            // Annoyance count indicator
+            _buildAnnoyanceCountIndicator(),
+
+            // Main content with varied formatting
             Container(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  // Section 1: Mindset Shift
-                  _buildInsightCard(
-                    icon: Icons.psychology,
-                    title: 'MINDSET SHIFT',
-                    content: recommendation,
-                    gradient: [
-                      Colors.white,
-                      const Color(0xFFFFF5F5),
-                    ],
-                  ),
+                  // Mindset Shift with enhanced formatting
+                  _buildEnhancedMindsetCard(recommendation),
+
+                  const SizedBox(height: 24),
+
+                  // Action Step with varied, engaging presentation
+                  _buildVariedActionStepContent(explanation),
 
                   const SizedBox(height: 32),
 
-                  // Section 2: Behavior Change  
-                  _buildInsightCard(
-                    icon: Icons.bolt,
-                    title: 'ACTION STEP',
-                    content: explanation,
-                    gradient: [
-                      const Color(0xFFFFF5F5),
-                      Colors.white,
-                    ],
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  // Resonance section
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 2,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'How does this land?',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        
-                        const SizedBox(height: 24),
-                        
-                        if (!_hasGivenFeedback)
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () => _handleResonance('meh'),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 20),
-                                    side: const BorderSide(color: Colors.white54, width: 2),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Meh',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 2,
-                                child: ElevatedButton(
-                                  onPressed: () => _handleResonance('hell_yes'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: const Color(0xFF0F766E),
-                                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-                                    elevation: 8,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  child: const FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'Hell YESSS!',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Icon(Icons.check_circle, size: 24),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check_circle, color: Colors.white, size: 28),
-                                SizedBox(width: 12),
-                                Text(
-                                  'Feedback received!',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+                  // Resonance section with enhanced design
+                  _buildEnhancedResonanceSection(),
 
                   const SizedBox(height: 40),
                 ],
@@ -914,29 +728,483 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildInsightCard({
-    required IconData icon,
-    required String title,
-    required String content,
-    required List<Color> gradient,
-  }) {
+  Widget _buildAnnoyanceCountIndicator() {
+    return FutureBuilder<int>(
+      future: _getAnnoyanceCount(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final count = snapshot.data!;
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.analytics_outlined,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Analyzed $count ${count == 1 ? 'annoyance' : 'annoyances'}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Pattern Analysis',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Future<int> _getAnnoyanceCount() async {
+    try {
+      final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+      final uid = authStateManager.userId;
+      if (uid != null) {
+        final annoyanceProvider = Provider.of<AnnoyanceProvider>(context, listen: false);
+        await annoyanceProvider.loadAnnoyances(uid);
+        return annoyanceProvider.annoyances.length;
+      }
+    } catch (e) {
+      debugPrint('Error getting annoyance count: $e');
+    }
+    return 0;
+  }
+
+  Widget _buildDynamicHeroSection(bool isFirstCoaching) {
+    final heroVariations = [
+      {
+        'icon': Icons.auto_awesome,
+        'badge': 'YOUR BREAKTHROUGH',
+        'color': AppColors.accentCoral,
+        'message': 'Here\'s what I see in your patterns...'
+      },
+      {
+        'icon': Icons.psychology,
+        'badge': 'INSIGHT UNLOCKED',
+        'color': Colors.purple,
+        'message': 'Let\'s shift your perspective...'
+      },
+      {
+        'icon': Icons.bolt,
+        'badge': 'READY TO ACT',
+        'color': Colors.orange,
+        'message': 'Time to make a real change...'
+      },
+      {
+        'icon': Icons.lightbulb,
+        'badge': 'AHA MOMENT',
+        'color': Colors.amber,
+        'message': 'I found the pattern in your data...'
+      }
+    ];
+    
+    final variation = heroVariations[DateTime.now().millisecondsSinceEpoch % heroVariations.length];
+    
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: gradient,
+          colors: [
+            Colors.white.withValues(alpha: 0.15),
+            Colors.white.withValues(alpha: 0.05),
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          // Animated badge
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 800),
+            tween: Tween(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: variation['color'] as Color,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (variation['color'] as Color).withValues(alpha: 0.5),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    variation['badge'] as String,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Dynamic icon with animation
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 1200),
+            tween: Tween(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Icon(
+                  variation['icon'] as IconData,
+                  size: 80,
+                  color: Colors.white,
+                ),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Dynamic message
+          Text(
+            variation['message'] as String,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedMindsetCard(String content) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF8FAFC),
+            Color(0xFFE2E8F0),
+          ],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.8),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with icon and title
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.psychology,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'MINDSET SHIFT',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'A new way of thinking',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Content with enhanced formatting
+          _buildFormattedContent(content, isActionStep: false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVariedActionStepContent(String content) {
+    // Parse content into sections for varied presentation
+    final sections = _parseContentIntoSections(content);
+    
+    // Choose a random presentation style for variety
+    final presentationStyles = [
+      _buildActionStepStyle1,
+      _buildActionStepStyle2,
+      _buildActionStepStyle3,
+      _buildActionStepStyle4,
+      _buildActionStepStyle5,
+    ];
+    
+    final randomStyle = presentationStyles[DateTime.now().millisecondsSinceEpoch % presentationStyles.length];
+    return randomStyle(sections);
+  }
+
+  Widget _buildActionStepStyle1(List<ContentSection> sections) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFF7ED),
+            Color(0xFFFFEDD5),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.8),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with icon and title
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.bolt,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ACTION STEP',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Something concrete to do today',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // First paragraph only
+          if (sections.isNotEmpty && sections.first.content.isNotEmpty)
+            _buildParagraphText(sections.first.content.first),
+          
+          const SizedBox(height: 20),
+          
+          // Rest as engaging cards
+          ...sections.skip(1).map((section) => _buildEngagingSectionCard(section)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionStepStyle2(List<ContentSection> sections) {
+    return Column(
+      children: [
+        // Main action card
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFF0F9FF),
+                Color(0xFFE0F2FE),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFF0EA5E9).withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0EA5E9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.play_circle_filled,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'YOUR ACTION',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (sections.isNotEmpty && sections.first.content.isNotEmpty)
+                _buildParagraphText(sections.first.content.first),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Supporting cards
+        ...sections.skip(1).map((section) => _buildSupportingCard(section)),
+      ],
+    );
+  }
+
+  Widget _buildActionStepStyle3(List<ContentSection> sections) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF0FDF4),
+            Color(0xFFDCFCE7),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF22C55E).withValues(alpha: 0.3),
+          width: 2,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -946,41 +1214,752 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primaryTeal, AppColors.accentCoral],
-                  ),
+                  color: const Color(0xFF22C55E),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: Colors.white, size: 28),
+                child: const Icon(
+                  Icons.trending_up,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
+              const Text(
+                'IMPLEMENTATION',
+                style: TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                  color: Color(0xFF0F766E),
+                  color: Color(0xFF1E293B),
+                  letterSpacing: 1,
                 ),
               ),
             ],
           ),
-          
-          const SizedBox(height: 24),
-          
-          Text(
-            content,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              height: 1.5,
-              color: Colors.black87,
-              letterSpacing: -0.3,
+          const SizedBox(height: 16),
+          if (sections.isNotEmpty && sections.first.content.isNotEmpty)
+            _buildParagraphText(sections.first.content.first),
+          const SizedBox(height: 16),
+          ...sections.skip(1).map((section) => _buildImplementationStep(section)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionStepStyle4(List<ContentSection> sections) {
+    return Column(
+      children: [
+        // Hero action
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFDF4FF),
+                Color(0xFFF3E8FF),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFFA855F7).withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFA855F7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.psychology,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'MINDSET + ACTION',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (sections.isNotEmpty && sections.first.content.isNotEmpty)
+                _buildParagraphText(sections.first.content.first),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Grid of supporting elements
+        _buildSupportingGrid(sections.skip(1).toList()),
+      ],
+    );
+  }
+
+  Widget _buildActionStepStyle5(List<ContentSection> sections) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFF1F2),
+            Color(0xFFFFE4E6),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.flash_on,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Text(
+                'QUICK WIN',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1E293B),
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (sections.isNotEmpty && sections.first.content.isNotEmpty)
+            _buildParagraphText(sections.first.content.first),
+          const SizedBox(height: 16),
+          ...sections.skip(1).map((section) => _buildQuickWinElement(section)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParagraphText(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        height: 1.6,
+        color: Color(0xFF1E293B),
+      ),
+    );
+  }
+
+  Widget _buildEngagingSectionCard(ContentSection section) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (section.title.isNotEmpty) ...[
+            Text(
+              section.title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          ...section.content.map((line) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              line,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                height: 1.5,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSupportingCard(ContentSection section) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF0EA5E9).withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (section.title.isNotEmpty) ...[
+            Text(
+              section.title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          ...section.content.map((line) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              line,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImplementationStep(ContentSection section) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF22C55E).withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: const Color(0xFF22C55E),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.check,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (section.title.isNotEmpty) ...[
+                  Text(
+                    section.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                ...section.content.map((line) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    line,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                )),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildSupportingGrid(List<ContentSection> sections) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1.5,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: sections.length,
+      itemBuilder: (context, index) {
+        final section = sections[index];
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFFA855F7).withValues(alpha: 0.2),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (section.title.isNotEmpty) ...[
+                Text(
+                  section.title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Expanded(
+                child: Text(
+                  section.content.join(' '),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    height: 1.3,
+                    color: Color(0xFF1E293B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 4,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickWinElement(ContentSection section) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.flash_on,
+              color: Colors.white,
+              size: 12,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (section.title.isNotEmpty) ...[
+                  Text(
+                    section.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                ...section.content.map((line) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    line,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormattedContent(String content, {required bool isActionStep}) {
+    if (isActionStep) {
+      return _buildVariedActionStepContent(content);
+    } else {
+      return _buildEnhancedMindsetContent(content);
+    }
+  }
+
+
+  Widget _buildEnhancedMindsetContent(String content) {
+    // Parse content for bullet points, emphasis, etc.
+    final lines = content.split('\n');
+    final formattedWidgets = <Widget>[];
+    
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      if (line.isEmpty) continue;
+      
+      // Check for bullet points
+      if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
+        formattedWidgets.add(
+          Container(
+            margin: const EdgeInsets.only(left: 16, bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.only(top: 8, right: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    line.substring(1).trim(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      height: 1.5,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      // Check for emphasis (text in quotes or caps)
+      else if (line.contains('"') || line.toUpperCase() == line && line.length > 5) {
+        formattedWidgets.add(
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              line,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+                color: const Color(0xFF1E293B),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        );
+      }
+      // Regular paragraph
+      else {
+        formattedWidgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              line,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                height: 1.6,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: formattedWidgets,
+    );
+  }
+
+  List<ContentSection> _parseContentIntoSections(String content) {
+    final sections = <ContentSection>[];
+    final lines = content.split('\n');
+    
+    ContentSection? currentSection;
+    
+    for (final line in lines) {
+      final trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) continue;
+      
+      // Check for section headers (all caps, short lines, or lines ending with :)
+      if (_isSectionHeader(trimmedLine)) {
+        if (currentSection != null) {
+          sections.add(currentSection);
+        }
+        currentSection = ContentSection(
+          type: _determineSectionType(trimmedLine),
+          title: trimmedLine,
+          content: [],
+        );
+      } else if (currentSection != null) {
+        currentSection.content.add(trimmedLine);
+      } else {
+        // No section header yet, create a default one
+        currentSection = ContentSection(
+          type: ContentSectionType.paragraph,
+          title: '',
+          content: [trimmedLine],
+        );
+      }
+    }
+    
+    if (currentSection != null) {
+      sections.add(currentSection);
+    }
+    
+    // If no sections were created, create a default one
+    if (sections.isEmpty) {
+      sections.add(ContentSection(
+        type: ContentSectionType.paragraph,
+        title: '',
+        content: content.split('\n').where((line) => line.trim().isNotEmpty).toList(),
+      ));
+    }
+    
+    return sections;
+  }
+
+  bool _isSectionHeader(String line) {
+    // Check for common section header patterns
+    return line.length < 50 && (
+      line.toUpperCase() == line && line.length > 3 && line.length < 30 ||
+      line.endsWith(':') ||
+      line.startsWith('**') ||
+      line.startsWith('##') ||
+      line.startsWith('###')
+    );
+  }
+
+  ContentSectionType _determineSectionType(String title) {
+    final lowerTitle = title.toLowerCase();
+    
+    if (lowerTitle.contains('step') || lowerTitle.contains('action') || lowerTitle.contains('do')) {
+      return ContentSectionType.actionSteps;
+    } else if (lowerTitle.contains('why') || lowerTitle.contains('reason') || lowerTitle.contains('because')) {
+      return ContentSectionType.explanation;
+    } else if (lowerTitle.contains('tip') || lowerTitle.contains('hint') || lowerTitle.contains('remember')) {
+      return ContentSectionType.tips;
+    } else if (lowerTitle.contains('example') || lowerTitle.contains('scenario')) {
+      return ContentSectionType.examples;
+    } else {
+      return ContentSectionType.paragraph;
+    }
+  }
+
+
+  Widget _buildEnhancedResonanceSection() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.2),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'How does this land?',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          const SizedBox(height: 24),
+          
+          if (!_hasGivenFeedback)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _handleResonance('meh'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      side: const BorderSide(color: Colors.white54, width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Meh',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () => _handleResonance('hell_yes'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF0F766E),
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Hell YESSS!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.check_circle, size: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white, size: 28),
+                  SizedBox(width: 12),
+                  Text(
+                    'Feedback received!',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
+enum ContentSectionType {
+  actionSteps,
+  explanation,
+  tips,
+  examples,
+  paragraph,
+}
+
+class ContentSection {
+  final ContentSectionType type;
+  final String title;
+  final List<String> content;
+
+  ContentSection({
+    required this.type,
+    required this.title,
+    required this.content,
+  });
+}

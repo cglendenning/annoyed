@@ -229,7 +229,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                             const SizedBox(height: 8),
                             if (_isEditing)
                               DropdownButtonFormField<String>(
-                                value: _selectedCategory,
+                                initialValue: _selectedCategory,
                                 decoration: InputDecoration(
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),

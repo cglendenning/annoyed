@@ -369,17 +369,12 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
   let tokensOut = 0;
 
   try {
-    // Get user's annoyances from last 7 days (max 15)
-    const sevenDaysAgo = admin.firestore.Timestamp.fromDate(
-      new Date(Date.now() - (7 * 24 * 60 * 60 * 1000))
-    );
-    
+    // Get ALL user's annoyances (no time limit) for comprehensive pattern analysis
     const annoyancesSnapshot = await db
       .collection('annoyances')
       .where('uid', '==', uid)
-      .where('ts', '>=', sevenDaysAgo)
       .orderBy('ts', 'desc')
-      .limit(15)
+      .limit(50) // Increased limit to capture more historical data
       .get();
 
     if (annoyancesSnapshot.empty) {
@@ -433,15 +428,26 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
       categoryCount[a.category] = (categoryCount[a.category] || 0) + 1;
     });
 
-    // Build analysis summary
+    // Build comprehensive analysis summary
     const totalCount = annoyances.length;
     const topCategory = Object.keys(categoryCount).sort((a, b) => categoryCount[b] - categoryCount[a])[0];
     const topCategoryPercent = Math.round((categoryCount[topCategory] / totalCount) * 100);
     
-    // Include annoyances from last 7 days (max 15) in the prompt
+    // Include ALL annoyances in the prompt for comprehensive pattern analysis
     const allAnnoyancesList = annoyances.map(a => 
       `${a.category}: "${a.trigger}"`
     ).join('\n');
+    
+    // Determine confidence level based on data quantity
+    let confidenceLevel = 'low';
+    let patternStrength = 'weak';
+    if (totalCount >= 20) {
+      confidenceLevel = 'high';
+      patternStrength = 'strong';
+    } else if (totalCount >= 10) {
+      confidenceLevel = 'medium';
+      patternStrength = 'moderate';
+    }
 
     let resonanceFeedback = '';
     if (allPrevious.length > 0) {
@@ -481,7 +487,9 @@ Weave these educational points NATURALLY into your explanation - don't make it f
 
 [Request ID: ${timestamp}-${randomSeed}] - This is a NEW request. You must give a COMPLETELY DIFFERENT recommendation than any previous ones.${firstCoachingInstructions}
 
-Their patterns:
+DATA ANALYSIS:
+- Total annoyances analyzed: ${totalCount} (${confidenceLevel} confidence level)
+- Pattern strength: ${patternStrength}
 - Top issue: ${topCategory} (${topCategoryPercent}% of ${totalCount} annoyances)
 - ALL their recorded triggers (most recent first):
 ${allAnnoyancesList}${resonanceFeedback}
@@ -491,6 +499,7 @@ CRITICAL REQUIREMENTS:
 2. Your recommendation MUST directly address the SPECIFIC triggers in their list
 3. Look at the FULL LIST of triggers to identify the underlying pattern
 4. Prescribe a fix that addresses THOSE EXACT situations
+5. CONFIDENCE ADAPTATION: With ${totalCount} annoyances, you have ${confidenceLevel} confidence in the patterns. ${totalCount < 5 ? 'Be more exploratory and educational since patterns are still emerging.' : totalCount < 20 ? 'You can identify clear patterns and give targeted advice.' : 'You have strong evidence of established patterns - be confident and specific in your recommendations.'}
 
 For example, if they listed "coworker interrupts me in meetings" as a trigger, your recommendation should address THAT SPECIFIC SITUATION, not just "be more assertive in general."
 

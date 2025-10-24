@@ -179,13 +179,13 @@ class HowItWorksScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primaryTealLight.withOpacity(0.1),
-                    AppColors.accentCoralLight.withOpacity(0.1),
+                    AppColors.primaryTealLight.withValues(alpha: 0.1),
+                    AppColors.accentCoralLight.withValues(alpha: 0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.primaryTeal.withOpacity(0.2),
+                  color: AppColors.primaryTeal.withValues(alpha: 0.2),
                   width: 2,
                 ),
               ),
@@ -194,7 +194,7 @@ class HowItWorksScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withOpacity(0.1),
+                      color: AppColors.primaryTeal.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -255,7 +255,7 @@ class HowItWorksScreen extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryTeal.withOpacity(0.3),
+                color: AppColors.primaryTeal.withValues(alpha: 0.3),
                 blurRadius: 20,
                 spreadRadius: 2,
               ),
@@ -298,7 +298,7 @@ class HowItWorksScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -311,10 +311,10 @@ class HowItWorksScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: color.withOpacity(0.3),
+                color: color.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -359,7 +359,7 @@ class HowItWorksScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -459,7 +459,7 @@ class HowItWorksScreen extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.3),
+                color: color.withValues(alpha: 0.3),
                 blurRadius: 10,
                 spreadRadius: 2,
               ),

@@ -44,9 +44,7 @@ class SpeechService {
       },
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 30), // Don't auto-pause
-      partialResults: true,
-      cancelOnError: true,
-      listenMode: stt.ListenMode.confirmation,
+      // onDevice deprecated, using default settings
       onSoundLevelChange: (level) {
         // Optional: could use this to show audio level indicator
       },

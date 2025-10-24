@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 import 'firebase_options.dart';
@@ -15,7 +14,6 @@ import 'providers/suggestion_provider.dart';
 import 'providers/preferences_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/email_auth_screen.dart';
 import 'screens/auth_gate_screen.dart';
 import 'utils/app_colors.dart';
 

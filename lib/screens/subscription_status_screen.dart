@@ -123,7 +123,7 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen>
     final entitlement =
         allEntitlements.isNotEmpty ? allEntitlements.values.first : null;
     if (entitlement != null && kDebugMode) {
-      print('[DEBUG] Entitlement: ${entitlement.toString()}');
+      debugPrint('[DEBUG] Entitlement: ${entitlement.toString()}');
     }
     final planId = entitlement?.productIdentifier ??
         (activeSubs.isNotEmpty
@@ -243,14 +243,14 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.orange.withOpacity(0.1),
-                        Colors.red.withOpacity(0.1),
+                        Colors.orange.withValues(alpha: 0.1),
+                        Colors.red.withValues(alpha: 0.1),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     children: [

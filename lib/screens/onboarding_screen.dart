@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import '../providers/auth_state_manager.dart';
 import '../services/analytics_service.dart';
@@ -308,7 +307,6 @@ class _TutorialPageState extends State<_TutorialPage> {
   Timer? _textTimer;
   int _textIndex = 0;
 
-  bool _showRecordingBox = false;
 
   @override
   void initState() {
@@ -321,7 +319,7 @@ class _TutorialPageState extends State<_TutorialPage> {
     // Start with recording box showing
     if (mounted) {
       setState(() {
-        _showRecordingBox = true;
+        // Recording box state removed
       });
       
       // Start typing text immediately
@@ -355,7 +353,7 @@ class _TutorialPageState extends State<_TutorialPage> {
 
   void _restartAnimation() {
     setState(() {
-      _showRecordingBox = false;
+      // Recording box state removed
       _displayedText = '';
       _textIndex = 0;
     });
@@ -491,8 +489,8 @@ class _HowItWorksPage extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primaryTealLight.withOpacity(0.2),
-                  AppColors.accentCoralLight.withOpacity(0.2),
+                  AppColors.primaryTealLight.withValues(alpha: 0.2),
+                  AppColors.accentCoralLight.withValues(alpha: 0.2),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
@@ -531,7 +529,7 @@ class _HowItWorksPage extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.primaryTeal.withOpacity(0.3),
+                color: AppColors.primaryTeal.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
@@ -574,7 +572,7 @@ class _HowItWorksPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
+            color: color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 24),
@@ -731,7 +729,7 @@ class _SpeechRecognitionPermissionPageState extends State<_SpeechRecognitionPerm
                   'To convert speech to text on-device',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -777,7 +775,7 @@ class _SpeechRecognitionPermissionPageState extends State<_SpeechRecognitionPerm
                   'To record your voice',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),
