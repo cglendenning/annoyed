@@ -714,29 +714,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
 
-              if (annoyanceProvider.todayAnnoyances.isEmpty)
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.mic_none,
-                          size: 64,
-                          color: Colors.grey.shade300,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Hold to record your first annoyance',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
 
               // Bottom buttons
               const SizedBox(height: 16),
