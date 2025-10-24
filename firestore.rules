@@ -31,6 +31,9 @@ service cloud.firestore {
                      request.auth.uid == resource.data.uid;
       allow create: if request.auth != null && 
                       request.auth.uid == request.resource.data.uid;
+      // Allow users to update their own coaching records (e.g., resonance feedback)
+      allow update: if request.auth != null && 
+                       request.auth.uid == resource.data.uid;
       // Allow users to delete their own coaching records (for GDPR compliance)
       allow delete: if request.auth != null && 
                        request.auth.uid == resource.data.uid;

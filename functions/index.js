@@ -501,26 +501,25 @@ ${allAnnoyancesList}${resonanceFeedback}
 
 CRITICAL REQUIREMENTS:
 1. Your recommendation MUST be COMPLETELY DIFFERENT from any "Previous recommendations" listed above
-2. Your recommendation MUST directly address the SPECIFIC triggers in their list
-3. Look at the FULL LIST of triggers to identify the underlying pattern
-4. Prescribe a fix that addresses THOSE EXACT situations
+2. ANALYZE the FULL LIST of triggers to identify the UNDERLYING PATTERN that connects them
+3. The RECOMMENDATION (mindset shift) should be GENERAL and PATTERN-BASED - a high-level reframe that applies across multiple situations
+4. The EXPLANATION (action steps) should reference MULTIPLE specific annoyances from their list and show how the mindset shift applies to each
 5. CONFIDENCE ADAPTATION: With ${totalCount} annoyances, you have ${confidenceLevel} confidence in the patterns. ${totalCount < 5 ? 'Be more exploratory and educational since patterns are still emerging.' : totalCount < 20 ? 'You can identify clear patterns and give targeted advice.' : 'You have strong evidence of established patterns - be confident and specific in your recommendations.'}
 
-For example, if they listed "coworker interrupts me in meetings" as a trigger, your recommendation should address THAT SPECIFIC SITUATION, not just "be more assertive in general."
+STRUCTURE:
+- RECOMMENDATION: A generalized mindset shift based on the pattern you see (NOT focused on one specific annoyance)
+- EXPLANATION: Connect this shift to MULTIPLE specific annoyances from their list, showing how it applies across different situations
 
-Give them ONE specific action or mindset reframe. Be CONCRETE and ACTIONABLE - not corporate speak. Each recommendation must be UNIQUE.
+Good recommendation examples (generalized):
+- "You're treating other people's urgency as your own emergency."
+- "You're waiting for permission that nobody's going to give you."
+- "You're taking responsibility for things outside your control."
 
-Good examples:
-- "When someone interrupts you in meetings, say 'Let me finish this thought' and keep talking."
-- "Every morning, spend 10 minutes clearing inbox to zero before starting work."
-- "Stop treating every request as urgent. Ask yourself: 'What happens if I do this tomorrow?'"
+Bad recommendation examples (too specific to one annoyance):
+- "When your coworker interrupts you in meetings, say 'Let me finish this thought.'"
+- "Every morning, spend 10 minutes clearing your inbox to zero."
 
-Bad examples (too vague):
-- "Prioritize proactive management"
-- "Be more assertive"
-- "Focus on time management"
-
-The recommendation should stand alone. The explanation is supporting commentary.
+The recommendation should be the overarching insight. The explanation shows how it applies to their specific situations.
 
 IMPORTANT JSON FORMATTING:
 - Do NOT use curly braces in your text content
@@ -529,9 +528,9 @@ IMPORTANT JSON FORMATTING:
 
 Respond in JSON:
 {
-  "recommendation": "2-3 sentences max. Specific action or mindset shift that directly addresses their actual triggers.",
+  "recommendation": "2-3 sentences max. A GENERALIZED mindset shift or pattern-level insight based on what you see across ALL their annoyances. This should be broad enough to apply to multiple situations, not tied to one specific trigger.",
   "type": "mindset_shift" or "behavior_change",
-  "explanation": "Write at least 5-6 full paragraphs (minimum 500 words) of supporting commentary. DIRECTLY REFERENCE their specific triggers by name throughout the explanation. Show how this fix applies to their exact situations. Explain the psychology behind their reactions to these specific triggers, concrete examples of implementing this in the situations they described, what they'll notice when they try it, and how this creates lasting change. Write naturally and conversationally - don't use section headers or numbered lists. Just flow from one insight to the next, building a complete understanding."
+  "explanation": "Write at least 5-6 full paragraphs (minimum 500 words) of supporting commentary. DIRECTLY REFERENCE MULTIPLE specific triggers from their list throughout the explanation. Show how your generalized recommendation applies to many different situations they're experiencing. Weave in examples from at least 3-5 different annoyances to demonstrate the pattern. Explain the psychology behind this pattern, concrete examples of implementing this mindset shift across their various situations, what they'll notice when they try it, and how this creates lasting change. Write naturally and conversationally - don't use section headers or numbered lists. Just flow from one insight to the next, building a complete understanding."
 }`;
 
     const response = await openai.chat.completions.create({

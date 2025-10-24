@@ -71,11 +71,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
       _isLoading = true;
     });
 
+    // Get providers before any async operations to avoid BuildContext issues
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final prefsProvider = Provider.of<PreferencesProvider>(context, listen: false);
+
     try {
-      final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
-      final prefsProvider = Provider.of<PreferencesProvider>(context, listen: false);
-      
       // Just call purchaseStoreProduct - if it succeeds without throwing, we're good
+      // ignore: deprecated_member_use
       await Purchases.purchaseStoreProduct(product);
       
       // If we get here, purchase succeeded - activate premium
@@ -128,9 +130,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
           if (customerInfo.entitlements.all['premium']?.isActive == true) {
             debugPrint('[PaywallScreen] Purchase succeeded despite receipt error!');
             
-            final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
-            final prefsProvider = Provider.of<PreferencesProvider>(context, listen: false);
-            
+            // Use authStateManager and prefsProvider already obtained at the start of the function
             final uid = authStateManager.userId;
             if (uid != null) {
               final proUntil = DateTime.now().add(const Duration(days: 365));
@@ -433,10 +433,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
             ),
     );
   }
-}
-
-extension on PurchaseResult {
-  dynamic get entitlements => null;
 }
 
 class _FeatureTile extends StatelessWidget {

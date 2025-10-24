@@ -205,6 +205,12 @@ class FirebaseService {
     required String resonance, // 'hell_yes' or 'meh' or '' for not rated yet
     String? explanation,
   }) async {
+    debugPrint('[FirebaseService] 🔄 Saving coaching resonance...');
+    debugPrint('[FirebaseService]    → uid: $uid');
+    debugPrint('[FirebaseService]    → type: $type');
+    debugPrint('[FirebaseService]    → resonance: "$resonance"');
+    debugPrint('[FirebaseService]    → recommendation: ${recommendation.substring(0, recommendation.length > 60 ? 60 : recommendation.length)}...');
+    
     final docRef = await _firestore.collection('coaching').add({
       'uid': uid,
       'ts': FieldValue.serverTimestamp(),
@@ -213,6 +219,11 @@ class FirebaseService {
       'resonance': resonance,
       'explanation': explanation ?? '',
     });
+    
+    debugPrint('[FirebaseService] ✅ Coaching saved to Firestore!');
+    debugPrint('[FirebaseService]    → Document ID: ${docRef.id}');
+    debugPrint('[FirebaseService]    → Resonance value in Firestore: "$resonance"');
+    
     return docRef.id;
   }
   
@@ -242,6 +253,34 @@ class FirebaseService {
       debugPrint('Error getting coachings: $e');
       return [];
     }
+  }
+
+  // Update resonance for an existing coaching
+  static Future<void> updateCoachingResonance({
+    required String docId,
+    required String resonance,
+  }) async {
+    debugPrint('[FirebaseService] 🔄 Updating coaching resonance...');
+    debugPrint('[FirebaseService]    → Document ID: $docId');
+    debugPrint('[FirebaseService]    → New resonance: "$resonance"');
+    
+    await _firestore.collection('coaching').doc(docId).update({
+      'resonance': resonance,
+    });
+    
+    debugPrint('[FirebaseService] ✅ Coaching resonance updated in Firestore!');
+  }
+
+  // Delete a specific coaching by document ID
+  static Future<void> deleteCoaching({
+    required String docId,
+  }) async {
+    debugPrint('[FirebaseService] 🗑️ Deleting coaching...');
+    debugPrint('[FirebaseService]    → Document ID: $docId');
+    
+    await _firestore.collection('coaching').doc(docId).delete();
+    
+    debugPrint('[FirebaseService] ✅ Coaching deleted from Firestore!');
   }
 
   // Delete all user data

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'dart:io';
 import '../providers/auth_state_manager.dart';
 import '../providers/annoyance_provider.dart';
 import '../models/annoyance.dart';
@@ -117,49 +119,23 @@ class HistoryScreen extends StatelessWidget {
                       ),
                     ),
                     ...dateAnnoyances.map((annoyance) {
-                      return Dismissible(
+                      return Slidable(
                         key: Key(annoyance.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(
-                            Icons.delete,
-                            color: Colors.white,
-                          ),
-                        ),
-                        confirmDismiss: (direction) async {
-                          return await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Delete Entry'),
-                              content: const Text(
-                                'Are you sure you want to delete this entry?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(false),
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(true),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.red,
-                                  ),
-                                  child: const Text('Delete'),
-                                ),
-                              ],
+                        endActionPane: ActionPane(
+                          motion: Platform.isIOS 
+                              ? const DrawerMotion() 
+                              : const ScrollMotion(),
+                          extentRatio: 0.25,
+                          children: [
+                            SlidableAction(
+                              onPressed: (context) => _deleteAnnoyance(context, annoyance),
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              icon: Icons.delete,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          );
-                        },
-                        onDismissed: (direction) {
-                          _deleteAnnoyance(context, annoyance);
-                        },
+                          ],
+                        ),
                         child: Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
