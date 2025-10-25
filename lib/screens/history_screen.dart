@@ -26,14 +26,9 @@ class HistoryScreen extends StatelessWidget {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Entry deleted'),
-            action: SnackBarAction(
-              label: 'Undo',
-              onPressed: () {
-                // Undo not needed - user can view in history and restore if needed
-              },
-            ),
+          const SnackBar(
+            content: Text('Entry deleted'),
+            duration: Duration(seconds: 2),
           ),
         );
       }
