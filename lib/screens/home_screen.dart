@@ -7,13 +7,11 @@ import '../providers/annoyance_provider.dart';
 import '../services/speech_service.dart';
 import '../services/firebase_service.dart';
 import '../widgets/tap_to_record_button.dart';
-import '../widgets/category_chip.dart';
 import '../widgets/animated_gradient_container.dart';
 import '../utils/app_colors.dart';
 import '../utils/constants.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
-import 'entry_detail_screen.dart';
 import 'coaching_screen.dart';
 import 'coaching_screens/annoyance_analysis_screen.dart';
 
@@ -641,75 +639,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
               ],
 
-              // Recent entries
-              if (annoyanceProvider.todayAnnoyances.isNotEmpty) ...[
-                Row(
-                  children: [
-                    const Text(
-                      'Recent (today)',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const HistoryScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text('View All'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: annoyanceProvider.todayAnnoyances.length,
-                    itemBuilder: (context, index) {
-                      final annoyance =
-                          annoyanceProvider.todayAnnoyances[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  annoyance.transcript,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (annoyance.modified) ...[
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.edit,
-                                  size: 14,
-                                  color: Colors.blue.shade700,
-                                ),
-                              ],
-                            ],
-                          ),
-                          trailing: CategoryChip(category: annoyance.category),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    EntryDetailScreen(annoyance: annoyance),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-
+              const Spacer(),
 
               // Bottom buttons
               const SizedBox(height: 16),
