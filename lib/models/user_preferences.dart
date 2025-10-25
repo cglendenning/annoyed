@@ -37,6 +37,7 @@ class UserPreferences {
       'good_end': goodEnd,
       'dnd_respect': dndRespect,
       'pro_until': proUntil != null ? Timestamp.fromDate(proUntil!) : null,
+      'isPro': isPro, // Add boolean field for Cloud Function compatibility
     };
   }
 

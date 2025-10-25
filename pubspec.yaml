@@ -49,6 +49,9 @@ dependencies:
   speech_to_text: ^7.3.0
   permission_handler: ^12.0.1
   
+  # Audio Playback
+  audioplayers: ^6.1.0
+  
   # Utilities
   intl: ^0.20.2
   uuid: ^4.3.3
@@ -56,7 +59,10 @@ dependencies:
   crypto: ^3.0.6
   shared_preferences: ^2.3.5
   url_launcher: ^6.3.1
-  flutter_slidable: ^3.1.0
+  flutter_slidable: ^4.0.3
+  
+  # Charts and Visualizations
+  fl_chart: ^1.0.0
   
   # RevenueCat
   purchases_flutter: ^9.8.0
@@ -80,7 +86,7 @@ dependency_overrides:
   characters: ^1.4.1
   material_color_utilities: ^0.13.0
   meta: ^1.17.0
-  test_api: ^0.7.7
+  test_api: ^0.7.7  # Latest version, overriding transitive constraints
   analyzer: ^9.0.0
   _fe_analyzer_shared: ^92.0.0
   rx: ^0.5.0
@@ -99,6 +105,7 @@ flutter:
   assets:
     - .env
     - assets/images/
+    - assets/images/backgrounds/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

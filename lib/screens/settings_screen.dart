@@ -28,11 +28,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _analyticsEnabled = true;
   bool _isPremium = false;
   bool _loadingSubscription = true;
+  String _selectedTtsVoice = 'nova'; // Default voice
+  
+  // Available OpenAI TTS voices
+  final Map<String, String> _ttsVoices = {
+    'alloy': 'Alloy (Neutral, Balanced)',
+    'echo': 'Echo (Male, Clear)',
+    'fable': 'Fable (Warm, Expressive)',
+    'onyx': 'Onyx (Deep, Authoritative)',
+    'nova': 'Nova (Female, Conversational)', // Default
+    'shimmer': 'Shimmer (Soft, Friendly)',
+  };
   
   @override
   void initState() {
     super.initState();
     _loadAnalyticsPreference();
+    _loadTtsVoicePreference();
     _checkSubscriptionStatus();
   }
   
@@ -71,6 +83,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (enabled) {
       await AnalyticsService.logEvent('analytics_enabled');
     }
+  }
+  
+  Future<void> _loadTtsVoicePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedTtsVoice = prefs.getString('tts_voice') ?? 'nova';
+    });
+  }
+  
+  Future<void> _saveTtsVoicePreference(String voice) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('tts_voice', voice);
+    await AnalyticsService.logEvent('tts_voice_changed', meta: {'voice': voice});
   }
   
   Future<void> _exportData() async {
@@ -790,6 +815,140 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     SnackBar(
                       content: Text('Restore failed: ${e.toString()}'),
                       backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+
+          const Divider(height: 32),
+
+          // Debug - Force Sync Subscription
+          ListTile(
+            title: const Text('🔧 Force Sync Subscription'),
+            subtitle: const Text('Debug: Manually sync RevenueCat → Firestore'),
+            leading: const Icon(Icons.sync, color: Colors.orange),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () async {
+              final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+              final uid = authStateManager.userId;
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              
+              if (uid == null) {
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Not signed in')),
+                );
+                return;
+              }
+              
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator()),
+              );
+              
+              try {
+                // Force sync
+                await authStateManager.forceSyncSubscription();
+                
+                if (mounted) {
+                  navigator.pop(); // Close loading
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('✅ Subscription synced! Try TTS now.'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  navigator.pop(); // Close loading
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Sync failed: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+
+          const Divider(height: 32),
+
+          // Coaching
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'Coaching',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'Customize your coaching experience with AI-powered text-to-speech',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Text-to-Speech Voice'),
+            subtitle: Text(_ttsVoices[_selectedTtsVoice] ?? 'Nova'),
+            leading: const Icon(Icons.record_voice_over, color: AppColors.primaryTeal),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () async {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final selected = await showDialog<String>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Select Voice'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: _ttsVoices.entries.map((entry) {
+                        final isSelected = entry.key == _selectedTtsVoice;
+                        return ListTile(
+                          title: Text(entry.value),
+                          leading: Icon(
+                            isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                            color: isSelected ? AppColors.primaryTeal : Colors.grey,
+                          ),
+                          onTap: () {
+                            Navigator.of(context).pop(entry.key);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
+              );
+              
+              if (selected != null && selected != _selectedTtsVoice) {
+                setState(() {
+                  _selectedTtsVoice = selected;
+                });
+                await _saveTtsVoicePreference(selected);
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Voice changed to ${_ttsVoices[selected]}'),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 }

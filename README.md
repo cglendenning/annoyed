@@ -20,6 +20,7 @@ A focused personal coach that meets you in two moments of your day: when somethi
 - [Deployment](#deployment)
 - [App Store Submission](#app-store-submission)
 - [Legal & Compliance](#legal--compliance)
+- [Coaching Screens](#coaching-screens)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -33,9 +34,12 @@ A focused personal coach that meets you in two moments of your day: when somethi
 - **Text fallback** if mic is unavailable
 
 ### Coach Mode
-- **Personalized coaching** based on your patterns (every 5 annoyances)
+- **4-screen immersive coaching experience** with swipeable interface
+- **Mindset Shift** — Personalized recommendations with inspirational backgrounds
+- **Deep Dive** — Action steps with native text-to-speech functionality
+- **Annoyance Analysis** — Beautiful pie charts and data visualizations
+- **Wisdom & CTA** — Deep quotes and 1:1 coaching invitation
 - **Coaching history** — all past coaching sessions saved permanently
-- **Quick feedback** (HELL YES / Meh) trains future suggestions
 - **One action only** — no overwhelm
 
 ### Privacy First
@@ -831,6 +835,263 @@ test('new state transitions correctly', () async {
   authManager.dispose();
 });
 ```
+
+---
+
+## Coaching Screens
+
+### Overview
+
+The coaching experience consists of 4 beautiful, swipeable screens designed to create an immersive, transformative journey.
+
+### The 4-Screen Experience
+
+#### Screen 1: Mindset Shift 🌅
+- **Random inspirational lake scene background** from `assets/images/backgrounds/`
+- Displays the coaching "recommendation" in a beautiful card
+- Clean, minimal design with gradient overlay
+- Swipe right to continue
+
+**Technical:**
+- Random selection from up to 20 images (`lake_1.jpg` - `lake_20.jpg`)
+- Graceful fallback to teal gradient if images unavailable
+- Responsive design for all screen sizes
+
+#### Screen 2: Deep Dive 🎯
+- **Action step content** with full text
+- **Native text-to-speech** functionality (iOS AVFoundation, Android TextToSpeech)
+- **Floating play button** (bottom-right) persists during scroll
+- Orange/red gradient theme
+- Swipe left to continue
+
+**Technical:**
+- Method channel: `com.annoyed.app/tts`
+- Play/stop controls
+- Native platform APIs for best quality
+- Background color: Orange (#F59E0B) to Red (#EF4444) gradient
+
+#### Screen 3: Annoyance Analysis 📊
+- **Beautiful pie chart** showing category breakdown
+- Stats cards (total annoyances, last 7 days)
+- **Color-coded category legend** with percentages
+- **Top 5 triggers** with progress bars
+- Purple gradient theme (#667eea to #764ba2)
+- Swipe left to continue
+
+**Technical:**
+- Uses `fl_chart` package for visualizations
+- Real-time data from `AnnoyanceProvider`
+- Color scheme matches category colors:
+  - Boundaries: Pink (#E91E63)
+  - Environment: Blue (#2196F3)
+  - Life Systems: Green (#4CAF50)
+  - Communication: Orange (#FF9800)
+  - Energy: Purple (#9C27B0)
+
+#### Screen 4: Wisdom & CTA ✨
+- **Random inspirational lake background**
+- **Wisdom quote** — Deep, spiritual, entrepreneurial (10 rotating quotes)
+- **Coach profile image**
+- **Call-to-action** for "Boxed-in Builders"
+- **Calendly integration** for 15-minute 1:1 discovery call
+- Targets entrepreneurs trapped by their own systems
+
+**Technical:**
+- Opens Calendly in external browser
+- 10 carefully crafted wisdom quotes
+- Dark overlay for text readability
+
+### Architecture
+
+```
+CoachingFlowScreen (PageView container)
+  ├─ Screen 1: MindsetShiftScreen
+  ├─ Screen 2: DeepDiveScreen  
+  ├─ Screen 3: AnnoyanceAnalysisScreen
+  └─ Screen 4: WisdomCtaScreen
+```
+
+**Files:**
+```
+lib/screens/
+├── coaching_flow_screen.dart          # Container with PageView
+└── coaching_screens/
+    ├── mindset_shift_screen.dart      # Screen 1
+    ├── deep_dive_screen.dart          # Screen 2 (with TTS)
+    ├── annoyance_analysis_screen.dart # Screen 3 (with charts)
+    └── wisdom_cta_screen.dart         # Screen 4 (with CTA)
+```
+
+### Native Text-to-Speech Implementation
+
+#### iOS (AppDelegate.swift)
+```swift
+import AVFoundation
+
+private let synthesizer = AVSpeechSynthesizer()
+
+// Method channel: "com.annoyed.app/tts"
+// Commands: "speak", "stop"
+// Rate: 0.5 (natural speaking pace)
+```
+
+#### Android (MainActivity.kt)
+```kotlin
+import android.speech.tts.TextToSpeech
+
+private lateinit var textToSpeech: TextToSpeech
+
+// Method channel: "com.annoyed.app/tts"
+// Commands: "speak", "stop"
+// Proper lifecycle management
+```
+
+### Wisdom Quotes
+
+10 powerful quotes designed to resonate emotionally with entrepreneurs:
+
+1. "The systems you built to free you have become your cage. It's time to remember who you were before the machine."
+2. "You created the blueprint. Now the blueprint controls you. Freedom begins when you step outside the architecture."
+3. "The entrepreneur's paradox: You built it all to gain time, but now time owns you. Reclaim your sovereignty."
+4. "Every system you built was once a solution. Today, they're the problem. Evolution demands letting go."
+5. "You are not your business. You are not your systems. You are the space between—the observer, the creator."
+6. "The cage you live in is made of your own design. The key has always been in your hand."
+7. "Mastery isn't building more. It's knowing when to tear down what no longer serves your highest self."
+8. "You automated everything but your soul. Return to what matters."
+9. "The patterns that built your empire are now your prison. Break the pattern, free the builder."
+10. "True freedom is realizing the systems serve you—not the other way around."
+
+### Setup Instructions
+
+#### 1. Add Lake Scene Images
+
+Place 20 inspirational lake scene images in `assets/images/backgrounds/`:
+
+```bash
+assets/images/backgrounds/
+  ├── lake_1.jpg
+  ├── lake_2.jpg
+  ├── lake_3.jpg
+  └── ... (up to lake_20.jpg)
+```
+
+**Requirements:**
+- Format: JPG or JPEG
+- Size: Larger than mobile screens (2000x3000+ recommended)
+- Aspect Ratio: Portrait or square
+- Content: Inspirational lake scenes, peaceful water, nature
+
+#### 2. Update Calendly Link
+
+In `lib/screens/coaching_screens/wisdom_cta_screen.dart`, line 38:
+
+```dart
+final uri = Uri.parse('https://calendly.com/YOUR-LINK/15min-discovery');
+```
+
+Update with your actual Calendly URL.
+
+#### 3. Verify Coach Image
+
+Ensure your photo exists at:
+```
+assets/images/coach_craig.jpg
+```
+
+### Dependencies
+
+Added to `pubspec.yaml`:
+
+```yaml
+dependencies:
+  fl_chart: ^1.0.0  # Beautiful charts and visualizations
+```
+
+### User Experience Flow
+
+```
+1. User taps "Get Coaching" button
+   ↓
+2. Commitment gate: "Can you commit to 5 minutes?"
+   ↓
+3. Loading state with rotating messages
+   ↓
+4. Coaching loads successfully
+   ↓
+5. CoachingFlowScreen appears with Screen 1 (Mindset Shift)
+   ↓
+6. User swipes right → Screen 2 (Deep Dive + TTS)
+   ↓
+7. User taps play button → Text reads aloud
+   ↓
+8. User swipes left → Screen 3 (Analysis + Charts)
+   ↓
+9. User swipes left → Screen 4 (Wisdom + CTA)
+   ↓
+10. User taps "Schedule Call" → Opens Calendly
+```
+
+### Visual Design
+
+**Page Indicator:**
+- White dots at bottom
+- Active page: Elongated pill (32px wide)
+- Inactive pages: Small circles (8px)
+- Smooth animations
+
+**Close Button:**
+- Top-left corner
+- White icon on all screens
+- Accessible at all times
+
+**Swipe Hints:**
+- Visual prompts: "Swipe right to continue"
+- Tap-to-advance alternative
+- Clear directional cues
+
+### Testing Checklist
+
+- [ ] Test TTS play/stop functionality
+- [ ] Swipe through all 4 screens smoothly
+- [ ] Verify pie chart displays correctly
+- [ ] Check category colors match app theme
+- [ ] Verify Calendly opens in external browser
+- [ ] Test background image fallback
+- [ ] Test on different screen sizes (iPhone SE, Pro Max, iPad)
+- [ ] Verify page indicators update correctly
+- [ ] Test close button on all screens
+
+### Color Themes
+
+| Screen | Gradient | Purpose |
+|--------|----------|---------|
+| Mindset Shift | Teal (#0F766E) | Calming, inspirational |
+| Deep Dive | Orange-Red (#F59E0B → #EF4444) | Energetic, actionable |
+| Analysis | Purple (#667eea → #764ba2) | Analytical, insightful |
+| Wisdom | Dark overlay on image | Reflective, profound |
+
+### Integration
+
+The coaching screens integrate seamlessly with the existing coaching system:
+
+- **Entry Point:** `coaching_screen.dart` → `_buildCoachingFlowContent()`
+- **Data Source:** Existing coaching generation (Firebase Cloud Function)
+- **History:** Still accessible via history button
+- **Regeneration:** Still works with refresh button
+- **Analytics:** Existing coaching analytics continue to work
+
+### Future Enhancements
+
+Potential improvements:
+
+- Add haptic feedback on swipes
+- Animate chart elements on screen entry
+- Add share functionality for insights
+- Save favorite wisdom quotes
+- Progress tracking across coaching sessions
+- More visualization types (line charts, trends over time)
+- Voice-activated navigation
+- Accessibility improvements (VoiceOver support)
 
 ---
 

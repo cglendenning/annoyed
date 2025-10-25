@@ -688,3 +688,85 @@ exports.getUserCostStatus = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', 'Failed to get cost status');
   }
 });
+
+/**
+ * Generate text-to-speech audio using OpenAI's TTS API
+ * Returns audio as base64-encoded data for immediate playback
+ * Input: { text: string, voice?: string }
+ * Output: { audioBase64: string, duration: number, cost: number }
+ * 
+ * Available voices: alloy, echo, fable, onyx, nova, shimmer
+ */
+exports.generateTTS = functions.runWith({
+  timeoutSeconds: 60,
+  memory: '512MB'
+}).https.onCall(async (data, context) => {
+  const { text, voice = 'nova' } = data;
+
+  if (!text || typeof text !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'Text is required');
+  }
+
+  // Validate voice
+  const validVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+  const selectedVoice = validVoices.includes(voice) ? voice : 'nova';
+
+  // Check authentication
+  if (!context.auth?.uid) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  // Check cost limits
+  await checkCostLimit(context.auth.uid, 'generateTTS');
+
+  const startTime = Date.now();
+
+  try {
+    console.log(`[generateTTS] Generating audio for ${text.length} chars with voice: ${selectedVoice}`);
+    
+    // Call OpenAI TTS API with selected voice
+    const response = await openai.audio.speech.create({
+      model: 'tts-1', // Use tts-1 for faster response (tts-1-hd for higher quality)
+      voice: selectedVoice,
+      input: text,
+      response_format: 'mp3',
+    });
+
+    // Convert response to buffer
+    const buffer = Buffer.from(await response.arrayBuffer());
+    
+    // Convert to base64 for transmission
+    const audioBase64 = buffer.toString('base64');
+    
+    // Calculate cost: $15 per 1M characters
+    const charCount = text.length;
+    const cost = (charCount / 1000000) * 15;
+    const duration = Date.now() - startTime;
+
+    // Log cost
+    await db.collection('llm_cost').add({
+      uid: context.auth.uid,
+      ts: admin.firestore.FieldValue.serverTimestamp(),
+      model: `tts-1-${selectedVoice}`,
+      tokens_in: charCount, // Using char count as "tokens"
+      tokens_out: 0,
+      cost_usd: cost,
+      duration_ms: duration,
+      function: 'generateTTS',
+      cache_hit: false,
+    });
+
+    console.log(`[generateTTS] Generated ${buffer.length} bytes of audio for ${charCount} chars, voice: ${selectedVoice}, cost: $${cost.toFixed(6)}, duration: ${duration}ms`);
+
+    return {
+      audioBase64: audioBase64,
+      duration: duration,
+      cost: cost,
+      charCount: charCount,
+      voice: selectedVoice,
+    };
+  } catch (error) {
+    console.error('[generateTTS] Error:', error);
+    throw new functions.https.HttpsError('internal', `TTS generation failed: ${error.message}`);
+  }
+});

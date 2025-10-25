@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import '../models/auth_state.dart';
+import '../services/firebase_service.dart';
 import '../services/analytics_service.dart';
 
 /// Single source of truth for authentication state.
@@ -58,6 +60,17 @@ class AuthStateManager extends ChangeNotifier {
     
     _firebaseUser = user;
     
+    // CRITICAL: Link RevenueCat to Firebase UID IMMEDIATELY when user authenticates
+    // This must happen BEFORE any purchases so subscriptions are tied to the correct user
+    if (user != null) {
+      await _linkRevenueCatUser(user.uid);
+    }
+    
+    // Sync subscription status for authenticated users (AWAIT IT - must complete before proceeding)
+    if (user != null && !user.isAnonymous) {
+      await _syncSubscriptionStatus(user.uid);
+    }
+    
     // Compute new state based on Firebase Auth + minimal flags
     final newState = await _computeState();
     
@@ -65,6 +78,92 @@ class AuthStateManager extends ChangeNotifier {
       debugPrint('[AuthStateManager] State transition: $_currentState → $newState');
       _currentState = newState;
       notifyListeners();
+    }
+  }
+  
+  /// Public method to force subscription sync (for debug/manual trigger)
+  Future<void> forceSyncSubscription() async {
+    if (_firebaseUser != null && !_firebaseUser!.isAnonymous) {
+      await _syncSubscriptionStatus(_firebaseUser!.uid);
+    } else {
+      throw Exception('No authenticated user');
+    }
+  }
+  
+  /// Link RevenueCat anonymous user to Firebase UID
+  /// This MUST be called before any purchases to ensure subscriptions follow the user across devices
+  Future<void> _linkRevenueCatUser(String uid) async {
+    try {
+      debugPrint('[AuthStateManager] Linking RevenueCat to Firebase UID: $uid');
+      
+      // Login transfers any purchases from anonymous user to the identified user
+      final loginResult = await Purchases.logIn(uid);
+      
+      debugPrint('[AuthStateManager] RevenueCat login result:');
+      debugPrint('[AuthStateManager]   - created: ${loginResult.created}');
+      debugPrint('[AuthStateManager]   - originalAppUserId: ${loginResult.customerInfo.originalAppUserId}');
+      debugPrint('[AuthStateManager]   - active subscriptions: ${loginResult.customerInfo.activeSubscriptions}');
+      debugPrint('[AuthStateManager]   - entitlements: ${loginResult.customerInfo.entitlements.all.keys.toList()}');
+      
+      if (loginResult.created) {
+        debugPrint('[AuthStateManager] ✅ New RevenueCat user created for Firebase UID');
+      } else {
+        debugPrint('[AuthStateManager] ✅ Logged into existing RevenueCat user');
+      }
+      
+      // The logIn() call automatically transfers any anonymous purchases to this identified user
+      // So if user subscribed while anonymous, their subscription is now linked to their Firebase account
+      
+    } catch (e) {
+      debugPrint('[AuthStateManager] ❌ Error linking RevenueCat user: $e');
+      // Don't throw - linking is important but shouldn't block auth flow
+    }
+  }
+  
+  /// Sync RevenueCat subscription status to Firestore
+  /// This ensures isPro field is always up to date
+  Future<void> _syncSubscriptionStatus(String uid) async {
+    try {
+      debugPrint('[AuthStateManager] Syncing subscription status for $uid');
+      
+      // Invalidate cache and sync to get latest subscription status
+      await Purchases.invalidateCustomerInfoCache();
+      await Purchases.syncPurchases();
+      
+      // Check RevenueCat subscription status
+      final customerInfo = await Purchases.getCustomerInfo();
+      final isPremium = customerInfo.entitlements.all['premium']?.isActive == true || 
+                        customerInfo.activeSubscriptions.isNotEmpty;
+      
+      debugPrint('[AuthStateManager] RevenueCat premium status: $isPremium');
+      debugPrint('[AuthStateManager] All entitlements: ${customerInfo.entitlements.all.keys.toList()}');
+      debugPrint('[AuthStateManager] Active subscriptions: ${customerInfo.activeSubscriptions}');
+      debugPrint('[AuthStateManager] Original app user ID: ${customerInfo.originalAppUserId}');
+      
+      if (isPremium) {
+        // Load current preferences
+        final prefs = await FirebaseService.getUserPreferences(uid);
+        
+        // Check if we need to update (if not pro or expires within 30 days)
+        final needsUpdate = !prefs.isPro || 
+                           (prefs.proUntil?.isBefore(DateTime.now().add(const Duration(days: 30))) ?? true);
+        
+        if (needsUpdate) {
+          debugPrint('[AuthStateManager] Updating pro status in Firestore');
+          
+          // Update with 1 year from now
+          final proUntil = DateTime.now().add(const Duration(days: 365));
+          final updated = prefs.copyWith(proUntil: proUntil);
+          
+          await FirebaseService.updateUserPreferences(updated);
+          debugPrint('[AuthStateManager] ✅ Pro status synced: isPro=true, proUntil=$proUntil');
+        } else {
+          debugPrint('[AuthStateManager] Pro status already up to date');
+        }
+      }
+    } catch (e) {
+      debugPrint('[AuthStateManager] Error syncing subscription status: $e');
+      // Don't throw - subscription sync is non-critical
     }
   }
 
