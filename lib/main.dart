@@ -93,38 +93,40 @@ class AnnoyedApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SuggestionProvider()),
         ChangeNotifierProvider(create: (_) => PreferencesProvider()),
       ],
-      child: MaterialApp(
-        title: 'Annoyed',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primaryTeal,
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFFF0FDFA), // Very light teal
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            foregroundColor: Colors.black87,
-            systemOverlayStyle: SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Brightness.dark, // Dark icons/text
-              statusBarBrightness: Brightness.light, // For iOS
+      child: SelectionArea(
+        child: MaterialApp(
+          title: 'Annoyed',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppColors.primaryTeal,
+              brightness: Brightness.light,
             ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFFF0FDFA), // Very light teal
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              foregroundColor: Colors.black87,
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.dark, // Dark icons/text
+                statusBarBrightness: Brightness.light, // For iOS
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryTeal,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            floatingActionButtonTheme: FloatingActionButtonThemeData(
               backgroundColor: AppColors.primaryTeal,
               foregroundColor: Colors.white,
             ),
           ),
-          floatingActionButtonTheme: FloatingActionButtonThemeData(
-            backgroundColor: AppColors.primaryTeal,
-            foregroundColor: Colors.white,
-          ),
+          home: const AuthGate(),
         ),
-        home: const AuthGate(),
       ),
     );
   }
