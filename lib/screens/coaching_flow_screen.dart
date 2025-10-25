@@ -10,10 +10,12 @@ import 'coaching_screens/wisdom_cta_screen.dart';
 /// Main coaching flow that presents 4 swipeable screens
 class CoachingFlowScreen extends StatefulWidget {
   final Map<String, dynamic> coaching;
+  final VoidCallback? onCoachingCompleted;
   
   const CoachingFlowScreen({
     super.key,
     required this.coaching,
+    this.onCoachingCompleted,
   });
 
   @override
@@ -123,7 +125,11 @@ class _CoachingFlowScreenState extends State<CoachingFlowScreen> {
             left: 16,
             child: IconButton(
               icon: const Icon(Icons.close, color: Colors.white, size: 28),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Notify that coaching was completed (viewed)
+                widget.onCoachingCompleted?.call();
+              },
             ),
           ),
         ],

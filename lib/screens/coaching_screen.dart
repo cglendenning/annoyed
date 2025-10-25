@@ -13,8 +13,13 @@ import 'coaching_flow_screen.dart';
 
 class CoachingScreen extends StatefulWidget {
   final bool forceRegenerate;
+  final VoidCallback? onCoachingCompleted;
   
-  const CoachingScreen({super.key, this.forceRegenerate = false});
+  const CoachingScreen({
+    super.key, 
+    this.forceRegenerate = false,
+    this.onCoachingCompleted,
+  });
 
   @override
   State<CoachingScreen> createState() => _CoachingScreenState();
@@ -595,6 +600,9 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
     }
 
     // Navigate to the new 4-screen coaching flow
-    return CoachingFlowScreen(coaching: _coaching!);
+    return CoachingFlowScreen(
+      coaching: _coaching!,
+      onCoachingCompleted: widget.onCoachingCompleted,
+    );
   }
 }

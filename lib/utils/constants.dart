@@ -6,7 +6,7 @@ class AppConstants {
   
   // Coaching
   static const int annoyancesPerCoaching = 5;
-  static const int annoyancesForAuthGate = 5;
+  static const int annoyancesForAuthGate = 999; // Disabled - now triggered after coaching completion
   static const int minAnnoyancesForPatterns = 3;
   static const int loadingMessageIntervalSeconds = 3;
   static const int newAnnoyancesForCoachingRegeneration = 5;

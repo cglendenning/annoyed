@@ -222,9 +222,13 @@ class _HomeScreenState extends State<HomeScreen> {
           else if (await _shouldGenerateNewCoaching(uid, annoyanceCount)) {
             await Future.delayed(const Duration(milliseconds: 1500));
             if (mounted) {
+              final coachingCount = await _getCoachingCount(uid);
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => CoachingScreen(forceRegenerate: true),
+                  builder: (context) => CoachingScreen(
+                    forceRegenerate: true,
+                    onCoachingCompleted: () => _handleCoachingCompleted(coachingCount + 1),
+                  ),
                 ),
               );
             }
@@ -258,10 +262,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _textController.clear();
   }
   
+  Future<int> _getCoachingCount(String uid) async {
+    final coachings = await FirebaseService.getAllCoachings(uid: uid);
+    return coachings.length;
+  }
+
   Future<bool> _shouldGenerateNewCoaching(String uid, int currentAnnoyanceCount) async {
     // Get count of existing coachings
-    final coachings = await FirebaseService.getAllCoachings(uid: uid);
-    final coachingCount = coachings.length;
+    final coachingCount = await _getCoachingCount(uid);
     
     // First coaching should happen at annoyance #1
     if (coachingCount == 0 && currentAnnoyanceCount == 1) {
@@ -274,6 +282,113 @@ class _HomeScreenState extends State<HomeScreen> {
     final nextCoachingAt = 1 + (coachingCount * AppConstants.annoyancesPerCoaching);
     
     return currentAnnoyanceCount == nextCoachingAt;
+  }
+
+  Future<void> _handleCoachingCompleted(int coachingNumber) async {
+    if (!mounted) return;
+
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final isAnonymous = authStateManager.isAnonymous;
+
+    // Only show prompts if user is still anonymous
+    if (!isAnonymous) return;
+
+    if (coachingNumber == 1) {
+      // First coaching: Show soft prompt (dismissible)
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        _showSoftAuthPrompt();
+      }
+    } else if (coachingNumber == 2) {
+      // Second coaching: Show hard gate (required)
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        await authStateManager.triggerAuthWall();
+      }
+    }
+  }
+
+  void _showSoftAuthPrompt() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lightbulb_outline,
+                color: AppColors.primaryTeal,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Want Deeper Insights?',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Record more annoyances to see real patterns emerge.',
+              style: TextStyle(fontSize: 16, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: Colors.black54),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Sign up now to save your progress',
+                      style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Continue Anonymous'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+              authStateManager.triggerAuthWall();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryTeal,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Sign Up Now'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
