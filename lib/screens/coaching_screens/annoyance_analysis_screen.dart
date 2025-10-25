@@ -173,7 +173,7 @@ class _AnnoyanceAnalysisScreenState extends State<AnnoyanceAnalysisScreen> {
                   _buildChartCard(
                     'Top Triggers',
                     _buildTopTriggers(),
-                    height: 200,
+                    height: 260,
                   ),
                 
                 const SizedBox(height: 40),
