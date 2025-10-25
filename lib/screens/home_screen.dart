@@ -12,10 +12,10 @@ import '../widgets/animated_gradient_container.dart';
 import '../utils/app_colors.dart';
 import '../utils/constants.dart';
 import 'history_screen.dart';
-import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'entry_detail_screen.dart';
 import 'coaching_screen.dart';
+import 'coaching_screens/annoyance_analysis_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -718,11 +718,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const ProfileScreen(),
-                          ),
-                        );
+                        final uid = authStateManager.userId;
+                        if (uid != null) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => AnnoyanceAnalysisScreen(
+                                uid: uid,
+                                annoyanceProvider: annoyanceProvider,
+                                isStandalone: true,
+                              ),
+                            ),
+                          );
+                        }
                       },
                       icon: const Icon(Icons.analytics_outlined),
                       label: const Text('Profile'),

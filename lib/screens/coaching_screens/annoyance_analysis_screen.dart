@@ -4,18 +4,21 @@ import '../../providers/annoyance_provider.dart';
 import '../../models/annoyance.dart';
 
 /// Screen 3: Annoyance Analysis with beautiful visualizations
+/// Can be used standalone (from Profile) or within coaching flow
 class AnnoyanceAnalysisScreen extends StatefulWidget {
   final String uid;
   final AnnoyanceProvider annoyanceProvider;
-  final VoidCallback onSwipeLeft;
-  final VoidCallback onSwipeRight;
+  final VoidCallback? onSwipeLeft;
+  final VoidCallback? onSwipeRight;
+  final bool isStandalone;
   
   const AnnoyanceAnalysisScreen({
     super.key,
     required this.uid,
     required this.annoyanceProvider,
-    required this.onSwipeLeft,
-    required this.onSwipeRight,
+    this.onSwipeLeft,
+    this.onSwipeRight,
+    this.isStandalone = false,
   });
 
   @override
@@ -86,6 +89,23 @@ class _AnnoyanceAnalysisScreenState extends State<AnnoyanceAnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // In standalone mode, use Scaffold with AppBar
+    if (widget.isStandalone) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Annoyance Analysis'),
+          backgroundColor: const Color(0xFF667eea),
+          foregroundColor: Colors.white,
+        ),
+        body: _buildContent(),
+      );
+    }
+    
+    // In coaching flow mode, use the full-screen gradient container
+    return _buildContent();
+  }
+
+  Widget _buildContent() {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -178,42 +198,43 @@ class _AnnoyanceAnalysisScreenState extends State<AnnoyanceAnalysisScreen> {
                 
                 const SizedBox(height: 40),
                 
-                // Swipe hint
-                Center(
-                  child: GestureDetector(
-                    onTap: widget.onSwipeLeft,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 1,
+                // Swipe hint (only in coaching flow mode)
+                if (!widget.isStandalone)
+                  Center(
+                    child: GestureDetector(
+                      onTap: widget.onSwipeLeft,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Swipe left to continue',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Swipe left to continue',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Icon(
-                            Icons.arrow_forward,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            const Icon(
+                              Icons.arrow_forward,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
                 
                 const SizedBox(height: 60),
               ],
