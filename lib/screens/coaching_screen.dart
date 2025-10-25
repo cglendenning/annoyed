@@ -308,6 +308,12 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    // When showing the coaching flow, return it directly (it has its own Scaffold and close button)
+    if (_hasCommitted && !_isLoading && _error == null && _coaching != null) {
+      return _buildCoachingFlowContent();
+    }
+    
+    // For commitment gate, loading, and error states, use Scaffold with AppBar
     return Scaffold(
       backgroundColor: const Color(0xFF0F766E), // Immersive background
       appBar: _hasCommitted ? AppBar(
@@ -317,41 +323,6 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: [
-          if (!_isLoading && _error == null) ...[
-            IconButton(
-              icon: const Icon(Icons.history, color: Colors.white),
-              tooltip: 'View coaching history',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const CoachingHistoryScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 16), // Double spacing between icons
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              tooltip: 'Generate new coaching',
-              onPressed: () async {
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                setState(() {
-                  _loadingMessageIndex = 0;
-                });
-                await _loadCoaching(forceRegenerate: true);
-                if (mounted) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Generated new coaching'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
-        ],
       ) : null,
       body: !_hasCommitted
           ? _buildCommitmentGate()
@@ -359,7 +330,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
               ? _buildBeautifulLoadingState()
               : _error != null
                   ? _buildErrorState()
-                  : _buildCoachingFlowContent(),
+                  : const SizedBox.shrink(), // Should never reach here due to early return
     );
   }
   
