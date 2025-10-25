@@ -15,6 +15,7 @@ import 'providers/preferences_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_gate_screen.dart';
+import 'screens/email_verification_screen.dart';
 import 'utils/app_colors.dart';
 
 void main() async {
@@ -160,6 +161,10 @@ class AuthGate extends StatelessWidget {
           case AuthState.anonymousActive:
           case AuthState.authenticatedActive:
             return const HomeScreen();
+
+          case AuthState.authenticatedUnverified:
+            // User must verify email before continuing
+            return const EmailVerificationScreen();
 
           case AuthState.anonymousAtAuthWall:
             // HARD gate - user must sign up, no "continue as guest"

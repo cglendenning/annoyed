@@ -203,8 +203,21 @@ class AuthStateManager extends ChangeNotifier {
       return AuthState.anonymousActive;
     }
 
-    // Email user → authenticated
+    // Email user → check if email is verified
     if (_firebaseUser!.email != null) {
+      // Reload user to get fresh emailVerified status
+      try {
+        await _firebaseUser!.reload();
+        _firebaseUser = FirebaseAuth.instance.currentUser;
+      } catch (e) {
+        debugPrint('[AuthStateManager] Error reloading user: $e');
+      }
+      
+      if (!(_firebaseUser!.emailVerified)) {
+        debugPrint('[AuthStateManager] Email not verified yet');
+        return AuthState.authenticatedUnverified;
+      }
+      
       return AuthState.authenticatedActive;
     }
 
@@ -305,6 +318,15 @@ class AuthStateManager extends ChangeNotifier {
       debugPrint('[AuthStateManager] Successfully linked! UID: ${_firebaseUser?.uid}');
       debugPrint('[AuthStateManager] User isAnonymous: ${_firebaseUser?.isAnonymous}');
       debugPrint('[AuthStateManager] User email: ${_firebaseUser?.email}');
+
+      // Send verification email
+      try {
+        await _firebaseUser!.sendEmailVerification();
+        debugPrint('[AuthStateManager] ✉️ Verification email sent to ${_firebaseUser!.email}');
+      } catch (e) {
+        debugPrint('[AuthStateManager] ⚠️ Failed to send verification email: $e');
+        // Don't fail the sign-up if email sending fails
+      }
 
       // Save user metadata to Firestore
       if (_firebaseUser != null) {
@@ -451,6 +473,15 @@ class AuthStateManager extends ChangeNotifier {
       // CRITICAL: Update our cached user reference immediately
       _firebaseUser = userCredential.user;
       debugPrint('[AuthStateManager] User created! UID: ${_firebaseUser?.uid}');
+
+      // Send verification email
+      try {
+        await _firebaseUser!.sendEmailVerification();
+        debugPrint('[AuthStateManager] ✉️ Verification email sent to ${_firebaseUser!.email}');
+      } catch (e) {
+        debugPrint('[AuthStateManager] ⚠️ Failed to send verification email: $e');
+        // Don't fail the sign-up if email sending fails
+      }
 
       // Save user metadata to Firestore
       if (_firebaseUser != null) {

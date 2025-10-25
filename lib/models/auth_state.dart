@@ -20,6 +20,10 @@ enum AuthState {
   /// User is signed in with email and using the app normally
   authenticatedActive,
 
+  /// User has email account but hasn't verified their email yet
+  /// This is a blocking state - must verify to continue
+  authenticatedUnverified,
+
   /// In progress: upgrading anonymous account to email account
   upgradingAnonymous,
 
@@ -48,6 +52,7 @@ extension AuthStateExtension on AuthState {
 
   /// Whether this state represents a blocking state (user can't proceed)
   bool get isBlocking => this == AuthState.anonymousAtAuthWall ||
+                         this == AuthState.authenticatedUnverified ||
                          this == AuthState.authError;
 }
 
