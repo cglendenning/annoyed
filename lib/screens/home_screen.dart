@@ -221,17 +221,19 @@ class _HomeScreenState extends State<HomeScreen> {
           // Pattern: annoyance #1 -> coaching #1, annoyance #6 -> coaching #2, annoyance #11 -> coaching #3, etc.
           else if (await _shouldGenerateNewCoaching(uid, annoyanceCount)) {
             await Future.delayed(const Duration(milliseconds: 1500));
-            if (mounted) {
-              final coachingCount = await _getCoachingCount(uid);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => CoachingScreen(
-                    forceRegenerate: true,
-                    onCoachingCompleted: () => _handleCoachingCompleted(coachingCount + 1),
-                  ),
+            if (!mounted) return;
+            
+            final coachingCount = await _getCoachingCount(uid);
+            if (!mounted) return;
+            
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CoachingScreen(
+                  forceRegenerate: true,
+                  onCoachingCompleted: () => _handleCoachingCompleted(coachingCount + 1),
                 ),
-              );
-            }
+              ),
+            );
           }
         }
       }

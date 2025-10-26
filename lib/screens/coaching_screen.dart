@@ -8,7 +8,6 @@ import '../services/paywall_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/constants.dart';
 import 'paywall_screen.dart';
-import 'coaching_history_screen.dart';
 import 'coaching_flow_screen.dart';
 
 class CoachingScreen extends StatefulWidget {
