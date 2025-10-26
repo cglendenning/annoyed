@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/annoyance.dart';
 import '../models/suggestion.dart';
 import '../models/user_preferences.dart';
@@ -124,6 +125,20 @@ class FirebaseService {
   static Future<void> logEvent(String type, Map<String, dynamic>? meta) async {
     final uid = currentUserId;
     if (uid == null) return;
+
+    // Check if analytics is enabled (respects user preference)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final analyticsEnabled = prefs.getBool('analytics_enabled') ?? true;
+      
+      if (!analyticsEnabled) {
+        debugPrint('[Analytics] Event not logged (user disabled analytics): $type');
+        return;
+      }
+    } catch (e) {
+      debugPrint('[Analytics] Error checking preference, logging anyway: $e');
+      // If we can't check the preference, default to logging (fail-safe)
+    }
 
     await eventsCollection.add({
       'uid': uid,
