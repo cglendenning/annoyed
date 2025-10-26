@@ -417,51 +417,52 @@ class _AnnoyanceAnalysisScreenState extends State<AnnoyanceAnalysisScreen> {
     
     final top5 = topTriggers.take(5).toList();
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: top5.asMap().entries.map((entry) {
-        final index = entry.key;
-        final trigger = entry.value;
-        final percentage = (trigger.value / _totalAnnoyances * 100).toInt();
-        
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    '${index + 1}.',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF667eea),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      trigger.key.length > 40 ? '${trigger.key.substring(0, 40)}...' : trigger.key,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: top5.asMap().entries.map((entry) {
+          final index = entry.key;
+          final trigger = entry.value;
+          final percentage = (trigger.value / _totalAnnoyances * 100).toInt();
+          
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '${index + 1}.',
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF667eea),
                       ),
                     ),
-                  ),
-                  Text(
-                    '$percentage%',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF667eea),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        trigger.key.length > 40 ? '${trigger.key.substring(0, 40)}...' : trigger.key,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              LinearProgressIndicator(
+                    Text(
+                      '$percentage%',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF667eea),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(
                 value: percentage / 100,
                 backgroundColor: Colors.grey.shade200,
                 valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
@@ -472,6 +473,7 @@ class _AnnoyanceAnalysisScreenState extends State<AnnoyanceAnalysisScreen> {
           ),
         );
       }).toList(),
+      ),
     );
   }
 }

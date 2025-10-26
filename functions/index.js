@@ -21,8 +21,8 @@ function getOpenAI() {
 const db = admin.firestore();
 
 // Cost limits (in USD)
-const FREE_USER_LIMIT = 0.30;  // Show paywall at $0.30
-const SUBSCRIBED_USER_LIMIT = 0.50;  // Hard stop at $0.50 per billing period
+const FREE_USER_LIMIT = 5.00;  // Show paywall at $5.00
+const SUBSCRIBED_USER_LIMIT = 10.00;  // Hard stop at $10.00 per billing period
 
 /**
  * Get user's total OpenAI costs for current billing period (monthly)

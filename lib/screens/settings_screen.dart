@@ -30,6 +30,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _loadingSubscription = true;
   String _selectedTtsVoice = 'nova'; // Default voice
   
+  // Cost tracking
+  bool _loadingCosts = true;
+  double _currentCost = 0.0;
+  double _costLimit = 0.30; // Default to free limit
+  int _percentUsed = 0;
+  
   // Available OpenAI TTS voices
   final Map<String, String> _ttsVoices = {
     'alloy': 'Alloy (Neutral, Balanced)',
@@ -46,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadAnalyticsPreference();
     _loadTtsVoicePreference();
     _checkSubscriptionStatus();
+    _loadCostStatus();
   }
   
   Future<void> _checkSubscriptionStatus() async {
@@ -65,6 +72,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         setState(() {
           _loadingSubscription = false;
+        });
+      }
+    }
+  }
+  
+  Future<void> _loadCostStatus() async {
+    final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
+    final uid = authStateManager.userId;
+    
+    if (uid == null) {
+      setState(() {
+        _loadingCosts = false;
+      });
+      return;
+    }
+    
+    try {
+      final result = await FirebaseService.getUserCostStatus(uid: uid);
+      
+      if (mounted) {
+        setState(() {
+          _currentCost = result['currentCost'] ?? 0.0;
+          _costLimit = result['limit'] ?? 0.30;
+          _percentUsed = result['percentUsed'] ?? 0;
+          _loadingCosts = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[Settings] Error loading cost status: $e');
+      if (mounted) {
+        setState(() {
+          _loadingCosts = false;
         });
       }
     }
@@ -730,6 +769,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
+          
+          // AI Usage Progress Bar
+          if (!_loadingCosts)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primaryTealLight.withAlpha(26),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primaryTealLight.withAlpha(77),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'AI Usage This Month',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      Text(
+                        '$_percentUsed%',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: _percentUsed >= 90 
+                              ? Colors.red 
+                              : AppColors.primaryTeal,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: (_percentUsed / 100).clamp(0.0, 1.0),
+                      minHeight: 12,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _percentUsed >= 90 
+                            ? Colors.red
+                            : _percentUsed >= 70
+                                ? Colors.orange
+                                : AppColors.primaryTeal,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '\$${_currentCost.toStringAsFixed(4)} used',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        '\$${_costLimit.toStringAsFixed(2)} limit',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_percentUsed >= 90)
+                    Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, size: 16, color: Colors.red.shade700),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Approaching limit! Subscribe for more AI features.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          
           if (_loadingSubscription)
             const Padding(
               padding: EdgeInsets.all(16.0),
@@ -748,8 +893,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (context) => const PaywallScreen(),
                   ),
                 );
-                // Refresh subscription status when returning
+                // Refresh subscription status and costs when returning
                 _checkSubscriptionStatus();
+                _loadCostStatus();
               },
             ),
           if (_isPremium && !_loadingSubscription)
@@ -765,8 +911,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (context) => const SubscriptionStatusScreen(),
                   ),
                 );
-                // Refresh subscription status when returning
+                // Refresh subscription status and costs when returning
                 _checkSubscriptionStatus();
+                _loadCostStatus();
               },
             ),
           ListTile(

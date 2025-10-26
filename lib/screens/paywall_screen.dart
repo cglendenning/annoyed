@@ -414,7 +414,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   _FeatureTile(
                     icon: Icons.auto_awesome,
                     title: 'More AI Usage',
-                    subtitle: '\$0.50/month limit vs \$0.30 for free users',
+                    subtitle: '\$10.00/month limit vs \$5.00 for free users',
                   ),
                   _FeatureTile(
                     icon: Icons.psychology,

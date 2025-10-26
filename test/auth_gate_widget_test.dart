@@ -153,7 +153,8 @@ void main() {
             break;
             
           case AuthState.anonymousAtAuthWall:
-            // Auth wall screen
+          case AuthState.authenticatedUnverified:
+            // Auth wall screen / Email verification screen
             expect(state.isBlocking, isTrue);
             break;
             

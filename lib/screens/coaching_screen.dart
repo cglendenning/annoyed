@@ -13,11 +13,13 @@ import 'coaching_flow_screen.dart';
 class CoachingScreen extends StatefulWidget {
   final bool forceRegenerate;
   final VoidCallback? onCoachingCompleted;
+  final bool skipCommitmentGate;
   
   const CoachingScreen({
     super.key, 
     this.forceRegenerate = false,
     this.onCoachingCompleted,
+    this.skipCommitmentGate = false,
   });
 
   @override
@@ -54,6 +56,16 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
   
   // Check if this is the first coaching to skip commitment gate
   Future<void> _checkIfFirstCoaching() async {
+    // Skip commitment gate if explicitly requested (e.g., regenerating from within coaching)
+    if (widget.skipCommitmentGate) {
+      debugPrint('[CoachingScreen] Skipping commitment gate as requested');
+      setState(() {
+        _hasCommitted = true;
+      });
+      _loadCoaching(forceRegenerate: widget.forceRegenerate);
+      return;
+    }
+    
     final authStateManager = Provider.of<AuthStateManager>(context, listen: false);
     final uid = authStateManager.userId;
     

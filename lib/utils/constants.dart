@@ -24,8 +24,8 @@ class AppConstants {
   static const int daysForCoachingAnalysis = 7;
   
   // Cost limits
-  static const double freeUserCostLimit = 0.30;
-  static const double subscribedUserCostLimit = 0.50;
+  static const double freeUserCostLimit = 5.00;
+  static const double subscribedUserCostLimit = 10.00;
   static const int costWarningPercentage = 90;
   
   // Animation durations

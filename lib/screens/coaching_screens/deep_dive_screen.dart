@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -8,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_state_manager.dart';
 import '../../services/paywall_service.dart';
+import '../../services/firebase_service.dart';
+import '../../services/analytics_service.dart';
 import '../paywall_screen.dart';
 
 /// Screen 2: Deep Dive (Action Step) with text-to-speech and floating play button
@@ -36,11 +39,17 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
   String? _currentAudioBase64;
   String _selectedVoice = 'nova';
   Timer? _progressTimer;
+  String? _resonance; // null = not set, 'hell_yes' or 'meh'
 
   @override
   void initState() {
     super.initState();
     _loadVoicePreference();
+    // Initialize resonance from coaching data (if already set from previous view)
+    final existingResonance = widget.coaching['resonance'];
+    if (existingResonance != null && existingResonance.toString().isNotEmpty) {
+      _resonance = existingResonance.toString();
+    }
     // Listen for audio completion
     _audioPlayer.onPlayerComplete.listen((_) {
       if (mounted) {
@@ -104,49 +113,70 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
       });
       
       final startTime = DateTime.now();
-      
-      // More realistic estimation based on actual OpenAI TTS performance:
-      // - Generation: ~2-3 seconds per 1000 characters
-      // - Network overhead: ~500ms base + transfer time
-      // - Base64 encoding: minimal overhead
       final charCount = explanation.length;
-      final estimatedGenerationTime = (charCount / 1000 * 2500).toInt(); // 2.5s per 1000 chars
-      final estimatedNetworkTime = 500 + (charCount / 100).toInt(); // 500ms base + transfer
-      final estimatedTotalTime = estimatedGenerationTime + estimatedNetworkTime;
       
-      debugPrint('[DeepDive] Estimated total time: ${estimatedTotalTime}ms for $charCount chars');
+      // Load historical data to predict generation time
+      final prefs = await SharedPreferences.getInstance();
+      final historicalData = prefs.getStringList('tts_generation_times') ?? [];
       
-      // Use adaptive progress that accounts for different phases
+      // Calculate expected time based on historical average (or use baseline)
+      double expectedMsPerChar = 20.0; // Baseline: 20ms per character (~20 seconds per 1000 chars)
+      
+      if (historicalData.isNotEmpty) {
+        // Parse historical data: "charCount:durationMs"
+        double totalChars = 0;
+        double totalMs = 0;
+        
+        for (final entry in historicalData) {
+          final parts = entry.split(':');
+          if (parts.length == 2) {
+            totalChars += double.tryParse(parts[0]) ?? 0;
+            totalMs += double.tryParse(parts[1]) ?? 0;
+          }
+        }
+        
+        if (totalChars > 0) {
+          expectedMsPerChar = totalMs / totalChars;
+          debugPrint('[DeepDive] Historical data: ${expectedMsPerChar.toStringAsFixed(2)}ms/char from ${historicalData.length} samples');
+        }
+      }
+      
+      double estimatedTotalTime = (charCount * expectedMsPerChar).clamp(5000, 40000);
+      debugPrint('[DeepDive] Initial estimate: ${estimatedTotalTime.toInt()}ms for $charCount chars');
+      
+      // Dynamic progress that adapts in real-time
       _progressTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
         if (!mounted || !_isLoading) {
           timer.cancel();
           return;
         }
         
-        final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+        final elapsed = DateTime.now().difference(startTime).inMilliseconds.toDouble();
         
-        // Calculate progress with realistic curve:
-        // - 0-70%: Generation phase (slower, most of the time)
-        // - 70-95%: Network transfer (faster)
-        // - 95-100%: Reserved for completion
+        // Adaptive estimation: adjust expected time based on how long it's taking
+        // If we're past 50% of estimated time but haven't finished, revise estimate upward
+        if (elapsed > estimatedTotalTime * 0.5 && elapsed < estimatedTotalTime * 1.5) {
+          // Smoothly adjust estimate based on current pace
+          final projectedTotal = elapsed / 0.5; // Project based on reaching 50%
+          estimatedTotalTime = (estimatedTotalTime * 0.8) + (projectedTotal * 0.2); // Weighted blend
+        }
+        
+        // Calculate smooth progress with adaptive curve
         double progress;
-        final generationPhase = estimatedGenerationTime * 0.7;
+        final ratio = elapsed / estimatedTotalTime;
         
-        if (elapsed < generationPhase) {
-          // Generation phase: 0 -> 70%
-          progress = (elapsed / generationPhase) * 0.7;
-        } else if (elapsed < estimatedTotalTime) {
-          // Transfer phase: 70% -> 95%
-          final transferElapsed = elapsed - generationPhase;
-          final transferTotal = estimatedTotalTime - generationPhase;
-          progress = 0.7 + ((transferElapsed / transferTotal) * 0.25);
+        if (ratio < 1.0) {
+          // Smooth S-curve that reaches ~92% at estimated completion
+          // Formula: 0.92 * (1 - e^(-4 * ratio))
+          progress = 0.92 * (1 - math.exp(-4 * ratio));
         } else {
-          // Waiting phase: cap at 95%
-          progress = 0.95;
+          // Past estimated time: creep slowly from 92% toward 98%
+          final overtime = ratio - 1.0;
+          progress = 0.92 + (0.06 * (1 - math.exp(-2 * overtime)));
         }
         
         setState(() {
-          _loadingProgress = progress.clamp(0.0, 0.95);
+          _loadingProgress = progress.clamp(0.0, 0.98);
         });
       });
       
@@ -163,7 +193,18 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
             });
         
         final actualDuration = DateTime.now().difference(callStartTime).inMilliseconds;
-        debugPrint('[DeepDive] Actual generation time: ${actualDuration}ms (estimated: ${estimatedTotalTime}ms)');
+        debugPrint('[DeepDive] Actual generation time: ${actualDuration}ms (estimated: ${estimatedTotalTime.toInt()}ms)');
+        
+        // Save actual duration for future predictions
+        final prefs = await SharedPreferences.getInstance();
+        final historicalData = prefs.getStringList('tts_generation_times') ?? [];
+        historicalData.add('$charCount:$actualDuration');
+        // Keep only last 10 samples for rolling average
+        if (historicalData.length > 10) {
+          historicalData.removeAt(0);
+        }
+        await prefs.setStringList('tts_generation_times', historicalData);
+        debugPrint('[DeepDive] Saved timing data: ${actualDuration}ms for $charCount chars (${(actualDuration/charCount).toStringAsFixed(2)}ms/char)');
         
         // Stop progress timer
         _progressTimer?.cancel();
@@ -287,6 +328,111 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
   Uint8List _base64ToBytes(String base64String) {
     return base64Decode(base64String);
   }
+  
+  Future<void> _toggleResonance() async {
+    final docId = widget.coaching['id'];
+    if (docId == null) {
+      debugPrint('[DeepDive] ❌ No document ID found for coaching');
+      return;
+    }
+
+    final currentResonance = _resonance ?? '';
+    // Cycle through: none -> hell_yes -> meh -> none (same as history screen)
+    String newResonance;
+    if (currentResonance == '') {
+      newResonance = 'hell_yes';
+    } else if (currentResonance == 'hell_yes') {
+      newResonance = 'meh';
+    } else {
+      newResonance = '';
+    }
+
+    debugPrint('[DeepDive] 💚 Resonance toggle initiated');
+    debugPrint('[DeepDive]    → Document ID: $docId');
+    debugPrint('[DeepDive]    → Previous: "$currentResonance"');
+    debugPrint('[DeepDive]    → New: "$newResonance"');
+
+    try {
+      // Optimistically update UI
+      setState(() {
+        _resonance = newResonance;
+      });
+
+      // Update the existing document in Firebase (same call as history screen)
+      await FirebaseService.updateCoachingResonance(
+        docId: docId,
+        resonance: newResonance,
+      );
+      
+      await AnalyticsService.logEvent('coaching_resonance', meta: {
+        'resonance': newResonance,
+        'type': widget.coaching['type'] ?? 'unknown',
+      });
+      
+      debugPrint('[DeepDive] ✅ Resonance successfully updated!');
+      debugPrint('[DeepDive]    → State changed from "$currentResonance" to "$newResonance"');
+    } catch (e) {
+      debugPrint('[DeepDive] ❌ Error updating resonance: $e');
+      // Revert on error
+      setState(() {
+        _resonance = currentResonance;
+      });
+    }
+  }
+  
+  Widget _buildResonanceIcon() {
+    Widget icon;
+    String label;
+    
+    if (_resonance == 'hell_yes') {
+      // Red filled heart
+      icon = const Icon(
+        Icons.favorite,
+        color: Colors.red,
+        size: 40, // Larger than history (24px)
+      );
+      label = 'Hell Yes!';
+    } else if (_resonance == 'meh') {
+      // Black/blue gradient broken heart
+      icon = ShaderMask(
+        shaderCallback: (bounds) => const LinearGradient(
+          colors: [Colors.black, Colors.blue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ).createShader(bounds),
+        child: const Icon(
+          Icons.heart_broken,
+          color: Colors.white,
+          size: 40, // Larger than history (24px)
+        ),
+      );
+      label = 'Meh';
+    } else {
+      // Empty outline heart
+      icon = Icon(
+        Icons.favorite_border,
+        color: Colors.white.withValues(alpha: 0.7),
+        size: 40, // Larger than history (24px)
+      );
+      label = 'No Comment';
+    }
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        icon,
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14, // Larger than history (9px)
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -309,7 +455,7 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
           SafeArea(
             child: SingleChildScrollView(
               controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
@@ -422,6 +568,28 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
                     ),
                     
                     const SizedBox(height: 40),
+                    
+                    // Resonance feedback icon (tappable, cycles through states)
+                    const SizedBox(height: 32),
+                    Center(
+                      child: GestureDetector(
+                        onTap: _toggleResonance,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 2,
+                            ),
+                          ),
+                          child: _buildResonanceIcon(),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 32),
                     
                     // Swipe hint
                     Center(

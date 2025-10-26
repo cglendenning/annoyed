@@ -6,6 +6,8 @@ import 'coaching_screens/mindset_shift_screen.dart';
 import 'coaching_screens/deep_dive_screen.dart';
 import 'coaching_screens/annoyance_analysis_screen.dart';
 import 'coaching_screens/wisdom_cta_screen.dart';
+import 'coaching_history_screen.dart';
+import 'coaching_screen.dart';
 
 /// Main coaching flow that presents 4 swipeable screens
 class CoachingFlowScreen extends StatefulWidget {
@@ -130,6 +132,45 @@ class _CoachingFlowScreenState extends State<CoachingFlowScreen> {
                 // Notify that coaching was completed (viewed)
                 widget.onCoachingCompleted?.call();
               },
+            ),
+          ),
+          
+          // Right-side action buttons
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            right: 16,
+            child: Row(
+              children: [
+                // Coaching history button
+                IconButton(
+                  icon: const Icon(Icons.history, color: Colors.white, size: 28),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const CoachingHistoryScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                // Regenerate coaching button
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
+                  onPressed: () {
+                    // Close current coaching flow and trigger regeneration
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => CoachingScreen(
+                          forceRegenerate: true,
+                          skipCommitmentGate: true,
+                          onCoachingCompleted: widget.onCoachingCompleted,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ],
