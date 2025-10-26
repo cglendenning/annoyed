@@ -321,10 +321,15 @@ class AuthStateManager extends ChangeNotifier {
 
       // Send verification email
       try {
+        debugPrint('[AuthStateManager] Attempting to send verification email to: ${_firebaseUser!.email}');
         await _firebaseUser!.sendEmailVerification();
-        debugPrint('[AuthStateManager] ✉️ Verification email sent to ${_firebaseUser!.email}');
+        debugPrint('[AuthStateManager] ✉️ Verification email sent successfully to ${_firebaseUser!.email}');
       } catch (e) {
         debugPrint('[AuthStateManager] ⚠️ Failed to send verification email: $e');
+        if (e is FirebaseAuthException) {
+          debugPrint('[AuthStateManager] Firebase error code: ${e.code}');
+          debugPrint('[AuthStateManager] Firebase error message: ${e.message}');
+        }
         // Don't fail the sign-up if email sending fails
       }
 
@@ -476,10 +481,15 @@ class AuthStateManager extends ChangeNotifier {
 
       // Send verification email
       try {
+        debugPrint('[AuthStateManager] Attempting to send verification email to: ${_firebaseUser!.email}');
         await _firebaseUser!.sendEmailVerification();
-        debugPrint('[AuthStateManager] ✉️ Verification email sent to ${_firebaseUser!.email}');
+        debugPrint('[AuthStateManager] ✉️ Verification email sent successfully to ${_firebaseUser!.email}');
       } catch (e) {
         debugPrint('[AuthStateManager] ⚠️ Failed to send verification email: $e');
+        if (e is FirebaseAuthException) {
+          debugPrint('[AuthStateManager] Firebase error code: ${e.code}');
+          debugPrint('[AuthStateManager] Firebase error message: ${e.message}');
+        }
         // Don't fail the sign-up if email sending fails
       }
 

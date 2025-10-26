@@ -119,8 +119,19 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     setState(() => _isResending = true);
     
     try {
-      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('No user logged in');
+      }
+      
+      debugPrint('[EmailVerification] Attempting to send verification email to: ${user.email}');
+      debugPrint('[EmailVerification] User ID: ${user.uid}');
+      debugPrint('[EmailVerification] Email verified status: ${user.emailVerified}');
+      
+      await user.sendEmailVerification();
       _lastResendTime = DateTime.now();
+      
+      debugPrint('[EmailVerification] ✓ sendEmailVerification() completed successfully');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -132,11 +143,19 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         );
       }
     } catch (e) {
-      debugPrint('[EmailVerification] Resend error: $e');
+      debugPrint('[EmailVerification] ❌ Resend error: $e');
+      debugPrint('[EmailVerification] Error type: ${e.runtimeType}');
+      if (e is FirebaseAuthException) {
+        debugPrint('[EmailVerification] Firebase error code: ${e.code}');
+        debugPrint('[EmailVerification] Firebase error message: ${e.message}');
+      }
+      
       if (mounted) {
         String errorMessage = 'Failed to send email';
         if (e.toString().contains('too-many-requests')) {
           errorMessage = 'Too many attempts. Please try again later.';
+        } else if (e is FirebaseAuthException) {
+          errorMessage = e.message ?? errorMessage;
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -257,7 +276,50 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 textAlign: TextAlign.center,
               ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+              
+              // Spam folder warning (bold and prominent)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade300, width: 2),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, size: 28, color: Colors.orange.shade700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'CHECK YOUR SPAM/JUNK FOLDER',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.orange.shade900,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Verification emails often end up in spam',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.orange.shade800,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 16),
               
               // Info box
               Container(
@@ -267,30 +329,18 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: Column(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 20, color: Colors.grey.shade700),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Click the link in the email to verify',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                    Icon(Icons.info_outline, size: 20, color: Colors.grey.shade700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Click the link in the email to verify your account',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Check your spam folder if you don\'t see it',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -347,32 +397,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         'Resend Verification Email',
                         style: TextStyle(fontSize: 16),
                       ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Auto-checking note
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.autorenew, size: 16, color: Colors.green.shade700),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Auto-checking every 3 seconds',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
