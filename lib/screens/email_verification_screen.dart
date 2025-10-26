@@ -219,11 +219,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const SizedBox(height: 40),
+              
               // Email icon with pulse animation
               Container(
                 padding: const EdgeInsets.all(24),
@@ -319,34 +320,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 ),
               ),
               
-              const SizedBox(height: 16),
-              
-              // Info box
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 20, color: Colors.grey.shade700),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Click the link in the email to verify your account',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
               const SizedBox(height: 40),
               
               // I've Verified button
@@ -398,6 +371,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         style: TextStyle(fontSize: 16),
                       ),
               ),
+              
+              const SizedBox(height: 40),
             ],
           ),
         ),
