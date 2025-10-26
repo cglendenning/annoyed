@@ -13,7 +13,7 @@ class PaywallService {
       // Return safe defaults on error
       return {
         'currentCost': 0.0,
-        'limit': 0.30,
+        'limit': 5.00,
         'isSubscribed': false,
         'canUseAI': true,
         'percentUsed': 0,
@@ -42,10 +42,11 @@ class PaywallService {
   /// Get a user-friendly message about their usage
   static Future<String> getUsageMessage(String uid) async {
     final status = await getCostStatus(uid);
-    final cost = status['currentCost'] as double;
-    final limit = status['limit'] as double;
-    final isSubscribed = status['isSubscribed'] as bool;
-    final percent = status['percentUsed'] as int;
+    // Convert to double to handle both int and double from backend
+    final cost = (status['currentCost'] ?? 0.0).toDouble();
+    final limit = (status['limit'] ?? 5.00).toDouble();
+    final isSubscribed = status['isSubscribed'] as bool? ?? false;
+    final percent = status['percentUsed'] as int? ?? 0;
     
     if (!status['canUseAI']) {
       if (isSubscribed) {

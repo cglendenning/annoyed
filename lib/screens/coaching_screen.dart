@@ -223,9 +223,11 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
           if (mounted) {
             setState(() {
               _coaching = {
+                'id': mostRecent['id'], // Include document ID for resonance updates
                 'recommendation': mostRecent['recommendation'],
                 'type': mostRecent['type'],
                 'explanation': mostRecent['explanation'] ?? '',
+                'resonance': mostRecent['resonance'] ?? '', // Include existing resonance
               };
               _isLoading = false;
               _isGenerating = false;
@@ -258,6 +260,7 @@ class _CoachingScreenState extends State<CoachingScreen> with SingleTickerProvid
         setState(() {
           _coaching = result;
           _coaching!['id'] = docId; // Store the document ID for later updates
+          _coaching!['resonance'] = ''; // Initially empty until user provides feedback
           _isLoading = false;
           _isGenerating = false;
         });

@@ -35,10 +35,9 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
   bool _isLoading = false;
-  double _loadingProgress = 0.0;
-  String? _currentAudioBase64;
+  List<String>? _audioChunksBase64; // Store all audio chunks
+  int _currentChunkIndex = 0;
   String _selectedVoice = 'nova';
-  Timer? _progressTimer;
   String? _resonance; // null = not set, 'hell_yes' or 'meh'
 
   @override
@@ -50,14 +49,93 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
     if (existingResonance != null && existingResonance.toString().isNotEmpty) {
       _resonance = existingResonance.toString();
     }
-    // Listen for audio completion
+    // Listen for audio completion to play next chunk
     _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) {
+        _playNextChunk();
+      }
+    });
+  }
+  
+  Future<void> _playNextChunk() async {
+    if (_audioChunksBase64 != null && _currentChunkIndex < _audioChunksBase64!.length - 1) {
+      // Check if next chunk is ready
+      if (_currentChunkIndex + 1 < _audioChunksBase64!.length) {
+        // Next chunk is ready, play it
+        _currentChunkIndex++;
+        debugPrint('[DeepDive] Playing chunk ${_currentChunkIndex + 1}/${_audioChunksBase64!.length}');
+        
+        await _audioPlayer.play(BytesSource(
+          _base64ToBytes(_audioChunksBase64![_currentChunkIndex]),
+          mimeType: 'audio/mpeg',
+        ));
+      } else {
+        // Next chunk not ready yet, wait for it
+        debugPrint('[DeepDive] Waiting for next chunk to buffer...');
+        
+        // Poll for next chunk (with timeout)
+        final startWait = DateTime.now();
+        while (_audioChunksBase64 == null || _currentChunkIndex + 1 >= _audioChunksBase64!.length) {
+          await Future.delayed(const Duration(milliseconds: 100));
+          
+          if (DateTime.now().difference(startWait).inSeconds > 30) {
+            debugPrint('[DeepDive] Timeout waiting for next chunk');
+            if (mounted) {
+              setState(() {
+                _isPlaying = false;
+              });
+            }
+            return;
+          }
+        }
+        
+        // Play the now-ready chunk
+        _currentChunkIndex++;
+        debugPrint('[DeepDive] Buffered chunk ${_currentChunkIndex + 1}/${_audioChunksBase64!.length} ready');
+        
+        await _audioPlayer.play(BytesSource(
+          _base64ToBytes(_audioChunksBase64![_currentChunkIndex]),
+          mimeType: 'audio/mpeg',
+        ));
+      }
+    } else {
+      // All chunks played
+      debugPrint('[DeepDive] All audio chunks completed');
       if (mounted) {
         setState(() {
           _isPlaying = false;
         });
       }
-    });
+    }
+  }
+  
+  List<String> _splitTextIntoChunks(String text, int maxChars) {
+    // Split text into chunks, trying to break at sentence boundaries
+    final chunks = <String>[];
+    var remaining = text;
+    
+    while (remaining.length > maxChars) {
+      // Try to find a sentence end near maxChars
+      var breakPoint = maxChars;
+      final searchStart = math.max(0, maxChars - 200);
+      final searchEnd = math.min(remaining.length, maxChars + 100);
+      final searchText = remaining.substring(searchStart, searchEnd);
+      
+      // Look for sentence endings
+      final sentenceEnd = RegExp(r'[.!?]\s+').allMatches(searchText).lastOrNull;
+      if (sentenceEnd != null) {
+        breakPoint = searchStart + sentenceEnd.end;
+      }
+      
+      chunks.add(remaining.substring(0, breakPoint).trim());
+      remaining = remaining.substring(breakPoint).trim();
+    }
+    
+    if (remaining.isNotEmpty) {
+      chunks.add(remaining);
+    }
+    
+    return chunks;
   }
   
   Future<void> _loadVoicePreference() async {
@@ -69,7 +147,6 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
 
   @override
   void dispose() {
-    _progressTimer?.cancel();
     _scrollController.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -92,10 +169,11 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
         return;
       }
       
-      // If we already have the audio data, just play it
-      if (_currentAudioBase64 != null) {
+      // If already cached, just play from start
+      if (_audioChunksBase64 != null && _audioChunksBase64!.isNotEmpty) {
+        _currentChunkIndex = 0;
         await _audioPlayer.play(BytesSource(
-          _base64ToBytes(_currentAudioBase64!),
+          _base64ToBytes(_audioChunksBase64![0]),
           mimeType: 'audio/mpeg',
         ));
         if (mounted) {
@@ -106,128 +184,78 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
         return;
       }
       
-      // Start loading with progress
+      // Split text into chunks (~1000 chars each, at sentence boundaries)
+      final textChunks = _splitTextIntoChunks(explanation, 1000);
+      debugPrint('[DeepDive] Split ${explanation.length} chars into ${textChunks.length} chunks');
+      
+      // Start loading
       setState(() {
         _isLoading = true;
-        _loadingProgress = 0.0;
       });
       
-      final startTime = DateTime.now();
-      final charCount = explanation.length;
+      final overallStartTime = DateTime.now();
+      final audioChunks = <String>[];
       
-      // Load historical data to predict generation time
-      final prefs = await SharedPreferences.getInstance();
-      final historicalData = prefs.getStringList('tts_generation_times') ?? [];
-      
-      // Calculate expected time based on historical average (or use baseline)
-      double expectedMsPerChar = 20.0; // Baseline: 20ms per character (~20 seconds per 1000 chars)
-      
-      if (historicalData.isNotEmpty) {
-        // Parse historical data: "charCount:durationMs"
-        double totalChars = 0;
-        double totalMs = 0;
-        
-        for (final entry in historicalData) {
-          final parts = entry.split(':');
-          if (parts.length == 2) {
-            totalChars += double.tryParse(parts[0]) ?? 0;
-            totalMs += double.tryParse(parts[1]) ?? 0;
-          }
-        }
-        
-        if (totalChars > 0) {
-          expectedMsPerChar = totalMs / totalChars;
-          debugPrint('[DeepDive] Historical data: ${expectedMsPerChar.toStringAsFixed(2)}ms/char from ${historicalData.length} samples');
-        }
-      }
-      
-      double estimatedTotalTime = (charCount * expectedMsPerChar).clamp(5000, 40000);
-      debugPrint('[DeepDive] Initial estimate: ${estimatedTotalTime.toInt()}ms for $charCount chars');
-      
-      // Dynamic progress that adapts in real-time
-      _progressTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-        if (!mounted || !_isLoading) {
-          timer.cancel();
-          return;
-        }
-        
-        final elapsed = DateTime.now().difference(startTime).inMilliseconds.toDouble();
-        
-        // Adaptive estimation: adjust expected time based on how long it's taking
-        // If we're past 50% of estimated time but haven't finished, revise estimate upward
-        if (elapsed > estimatedTotalTime * 0.5 && elapsed < estimatedTotalTime * 1.5) {
-          // Smoothly adjust estimate based on current pace
-          final projectedTotal = elapsed / 0.5; // Project based on reaching 50%
-          estimatedTotalTime = (estimatedTotalTime * 0.8) + (projectedTotal * 0.2); // Weighted blend
-        }
-        
-        // Calculate smooth progress with adaptive curve
-        double progress;
-        final ratio = elapsed / estimatedTotalTime;
-        
-        if (ratio < 1.0) {
-          // Smooth S-curve that reaches ~92% at estimated completion
-          // Formula: 0.92 * (1 - e^(-4 * ratio))
-          progress = 0.92 * (1 - math.exp(-4 * ratio));
-        } else {
-          // Past estimated time: creep slowly from 92% toward 98%
-          final overtime = ratio - 1.0;
-          progress = 0.92 + (0.06 * (1 - math.exp(-2 * overtime)));
-        }
-        
-        setState(() {
-          _loadingProgress = progress.clamp(0.0, 0.98);
-        });
-      });
-      
-      // Generate TTS audio via Cloud Function
       try {
-        debugPrint('[DeepDive] Calling generateTTS with $charCount chars, voice: $_selectedVoice');
+        // Generate first chunk and measure network speed
+        debugPrint('[DeepDive] Generating chunk 1/${textChunks.length} (${textChunks[0].length} chars)');
+        final firstChunkStart = DateTime.now();
         
-        final callStartTime = DateTime.now();
-        final result = await FirebaseFunctions.instance
+        final firstResult = await FirebaseFunctions.instance
             .httpsCallable('generateTTS')
             .call({
-              'text': explanation,
+              'text': textChunks[0],
               'voice': _selectedVoice,
             });
         
-        final actualDuration = DateTime.now().difference(callStartTime).inMilliseconds;
-        debugPrint('[DeepDive] Actual generation time: ${actualDuration}ms (estimated: ${estimatedTotalTime.toInt()}ms)');
+        final firstChunkDuration = DateTime.now().difference(firstChunkStart).inMilliseconds;
+        audioChunks.add(firstResult.data['audioBase64'] as String);
         
-        // Save actual duration for future predictions
-        final prefs = await SharedPreferences.getInstance();
-        final historicalData = prefs.getStringList('tts_generation_times') ?? [];
-        historicalData.add('$charCount:$actualDuration');
-        // Keep only last 10 samples for rolling average
-        if (historicalData.length > 10) {
-          historicalData.removeAt(0);
-        }
-        await prefs.setStringList('tts_generation_times', historicalData);
-        debugPrint('[DeepDive] Saved timing data: ${actualDuration}ms for $charCount chars (${(actualDuration/charCount).toStringAsFixed(2)}ms/char)');
+        // Estimate audio playback duration (rough estimate: 150 words/min = ~13 chars/sec of audio)
+        final estimatedPlaybackMs = (textChunks[0].length / 13 * 1000).toInt();
         
-        // Stop progress timer
-        _progressTimer?.cancel();
+        // Calculate network speed ratio (generation time / playback time)
+        final speedRatio = firstChunkDuration / estimatedPlaybackMs;
         
-        final audioBase64 = result.data['audioBase64'] as String;
-        final voice = result.data['voice'] as String? ?? _selectedVoice;
-        debugPrint('[DeepDive] Got audio data: ${audioBase64.length} chars, voice: $voice');
+        debugPrint('[DeepDive] First chunk: ${firstChunkDuration}ms generation, ~${estimatedPlaybackMs}ms playback, ratio: ${speedRatio.toStringAsFixed(2)}');
         
-        _currentAudioBase64 = audioBase64;
+        // Adaptive buffering: decide how many chunks to buffer before starting
+        int chunksToBuffer = 1; // Default: start immediately
         
-        // Show completion
-        if (mounted) {
-          setState(() {
-            _loadingProgress = 1.0;
-          });
+        if (speedRatio > 2.0) {
+          // Very slow network: buffer 3 chunks
+          chunksToBuffer = math.min(3, textChunks.length);
+          debugPrint('[DeepDive] Slow network detected, buffering $chunksToBuffer chunks');
+        } else if (speedRatio > 1.2) {
+          // Moderate network: buffer 2 chunks
+          chunksToBuffer = math.min(2, textChunks.length);
+          debugPrint('[DeepDive] Moderate network detected, buffering $chunksToBuffer chunks');
+        } else {
+          // Fast network: start immediately
+          debugPrint('[DeepDive] Fast network detected, starting playback immediately');
         }
         
-        // Brief delay to show 100%
-        await Future.delayed(const Duration(milliseconds: 300));
+        // Buffer additional chunks if needed
+        if (chunksToBuffer > 1 && textChunks.length > 1) {
+          for (int i = 1; i < chunksToBuffer && i < textChunks.length; i++) {
+            debugPrint('[DeepDive] Buffering chunk ${i + 1}/${textChunks.length}');
+            final result = await FirebaseFunctions.instance
+                .httpsCallable('generateTTS')
+                .call({
+                  'text': textChunks[i],
+                  'voice': _selectedVoice,
+                });
+            audioChunks.add(result.data['audioBase64'] as String);
+          }
+          debugPrint('[DeepDive] Buffered ${audioChunks.length} chunks, starting playback');
+        }
         
-        // Play the audio from base64 data
+        // Start playing first chunk
+        _audioChunksBase64 = audioChunks;
+        _currentChunkIndex = 0;
+        
         await _audioPlayer.play(BytesSource(
-          _base64ToBytes(audioBase64),
+          _base64ToBytes(audioChunks[0]),
           mimeType: 'audio/mpeg',
         ));
         
@@ -235,12 +263,16 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
           setState(() {
             _isPlaying = true;
             _isLoading = false;
-            _loadingProgress = 0.0;
           });
         }
+        
+        // Generate remaining chunks in background
+        if (audioChunks.length < textChunks.length) {
+          _generateRemainingChunks(textChunks, audioChunks, overallStartTime);
+        }
+        
       } catch (e) {
         debugPrint('[DeepDive] TTS error: $e');
-        _progressTimer?.cancel();
         
         String errorMsg = e.toString();
         
@@ -251,7 +283,6 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
           if (mounted) {
             setState(() {
               _isLoading = false;
-              _loadingProgress = 0.0;
             });
             
             // Get user ID for usage message
@@ -284,7 +315,6 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
         if (mounted) {
           setState(() {
             _isLoading = false;
-            _loadingProgress = 0.0;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -296,13 +326,61 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
       }
     } catch (e) {
       debugPrint('[DeepDive] Error starting speech: $e');
-      _progressTimer?.cancel();
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _loadingProgress = 0.0;
         });
       }
+    }
+  }
+  
+  Future<void> _generateRemainingChunks(
+    List<String> textChunks,
+    List<String> audioChunks,
+    DateTime overallStartTime,
+  ) async {
+    try {
+      final startIndex = audioChunks.length; // Start from where we left off
+      debugPrint('[DeepDive] Generating remaining ${textChunks.length - startIndex} chunks in background');
+      
+      for (int i = startIndex; i < textChunks.length; i++) {
+        debugPrint('[DeepDive] Generating chunk ${i + 1}/${textChunks.length} (${textChunks[i].length} chars)');
+        
+        final result = await FirebaseFunctions.instance
+            .httpsCallable('generateTTS')
+            .call({
+              'text': textChunks[i],
+              'voice': _selectedVoice,
+            });
+        
+        audioChunks.add(result.data['audioBase64'] as String);
+        
+        // Update cached chunks atomically
+        if (mounted) {
+          setState(() {
+            _audioChunksBase64 = List.from(audioChunks);
+          });
+        }
+        
+        debugPrint('[DeepDive] Chunk ${i + 1}/${textChunks.length} ready (${audioChunks.length} total cached)');
+      }
+      
+      final totalDuration = DateTime.now().difference(overallStartTime).inMilliseconds;
+      debugPrint('[DeepDive] All chunks generated in ${totalDuration}ms');
+      
+      // Save timing data for future predictions
+      final prefs = await SharedPreferences.getInstance();
+      final historicalData = prefs.getStringList('tts_generation_times') ?? [];
+      final totalChars = textChunks.fold(0, (sum, chunk) => sum + chunk.length);
+      historicalData.add('$totalChars:$totalDuration');
+      if (historicalData.length > 10) {
+        historicalData.removeAt(0);
+      }
+      await prefs.setStringList('tts_generation_times', historicalData);
+      
+    } catch (e) {
+      debugPrint('[DeepDive] Error generating remaining chunks: $e');
+      // Don't show error to user - they're already listening to first/buffered chunks
     }
   }
 
@@ -642,46 +720,6 @@ class _DeepDiveScreenState extends State<DeepDiveScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Progress indicator when loading
-                if (_isLoading)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${(_loadingProgress * 100).toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F766E),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 100,
-                          height: 4,
-                          child: LinearProgressIndicator(
-                            value: _loadingProgress,
-                            backgroundColor: Colors.grey.shade200,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0F766E)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 // Play/Stop button
                 GestureDetector(
                   onTap: _isLoading ? null : _toggleSpeech,

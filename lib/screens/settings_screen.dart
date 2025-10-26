@@ -33,7 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Cost tracking
   bool _loadingCosts = true;
   double _currentCost = 0.0;
-  double _costLimit = 0.30; // Default to free limit
+  double _costLimit = 5.00; // Default to free limit
   int _percentUsed = 0;
   
   // Available OpenAI TTS voices
@@ -93,8 +93,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       if (mounted) {
         setState(() {
-          _currentCost = result['currentCost'] ?? 0.0;
-          _costLimit = result['limit'] ?? 0.30;
+          // Convert to double to handle both int and double from backend
+          _currentCost = (result['currentCost'] ?? 0.0).toDouble();
+          _costLimit = (result['limit'] ?? 5.00).toDouble();
           _percentUsed = result['percentUsed'] ?? 0;
           _loadingCosts = false;
         });
@@ -830,7 +831,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '\$${_currentCost.toStringAsFixed(4)} used',
+                        '\$${_currentCost.toStringAsFixed(2)} used',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,
