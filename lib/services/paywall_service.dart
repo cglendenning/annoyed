@@ -3,7 +3,7 @@ import '../services/firebase_service.dart';
 
 class PaywallService {
   /// Check if user should see paywall based on OpenAI cost usage
-  /// Free users: Show paywall at $0.10 spent
+  /// Free users: Show paywall at $0.30 spent
   /// Subscribed users: Hard stop at $0.50 per month
   static Future<Map<String, dynamic>> getCostStatus(String uid) async {
     try {
@@ -13,7 +13,7 @@ class PaywallService {
       // Return safe defaults on error
       return {
         'currentCost': 0.0,
-        'limit': 0.10,
+        'limit': 0.30,
         'isSubscribed': false,
         'canUseAI': true,
         'percentUsed': 0,

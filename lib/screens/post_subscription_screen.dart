@@ -141,8 +141,8 @@ class _PostSubscriptionScreenState extends State<PostSubscriptionScreen>
                         // Feature highlights
                         _buildFeatureCard(
                           icon: Icons.auto_awesome,
-                          title: '5x More AI Usage',
-                          description: 'Your monthly AI limit is now \$0.50 instead of \$0.10',
+                          title: 'More AI Usage',
+                          description: 'Your monthly AI limit is now \$0.50 instead of \$0.30',
                           color: AppColors.primaryTeal,
                         ),
                         

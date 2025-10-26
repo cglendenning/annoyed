@@ -1,19 +1,27 @@
-const functions = require('firebase-functions');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const OpenAI = require('openai');
 
 admin.initializeApp();
 
-// Initialize OpenAI
-// The API key is set via: firebase functions:config:set openai.key="YOUR_KEY"
-const openai = new OpenAI({
-  apiKey: functions.config().openai?.key,
-});
+// Initialize OpenAI (will be lazy-loaded when needed)
+// API key is read from OPENAI_API_KEY environment variable
+let openai;
+
+// Helper to ensure OpenAI is initialized
+function getOpenAI() {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 const db = admin.firestore();
 
 // Cost limits (in USD)
-const FREE_USER_LIMIT = 0.10;  // Show paywall at $0.10
+const FREE_USER_LIMIT = 0.30;  // Show paywall at $0.30
 const SUBSCRIBED_USER_LIMIT = 0.50;  // Hard stop at $0.50 per billing period
 
 /**
@@ -66,7 +74,7 @@ async function checkCostLimit(uid, functionName) {
   
   // Check hard limit for subscribed users
   if (isSubscribed && totalCost >= SUBSCRIBED_USER_LIMIT) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       'resource-exhausted',
       `You've reached your monthly usage limit of $${SUBSCRIBED_USER_LIMIT.toFixed(2)}. Your limit will reset at the start of next month.`
     );
@@ -74,7 +82,7 @@ async function checkCostLimit(uid, functionName) {
   
   // Check limit for free users
   if (!isSubscribed && totalCost >= FREE_USER_LIMIT) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       'permission-denied',
       `You've reached the free usage limit. Subscribe to continue using AI features.`
     );
@@ -88,20 +96,20 @@ async function checkCostLimit(uid, functionName) {
  * Input: { text: string }
  * Output: { category: string, trigger: string, safe: boolean }
  */
-exports.classifyAnnoyance = functions.https.onCall(async (data, context) => {
-  const { text } = data;
+exports.classifyAnnoyance = onCall(async (request) => {
+  const { text } = request.data;
 
   if (!text || typeof text !== 'string') {
-    throw new functions.https.HttpsError('invalid-argument', 'Text is required');
+    throw new HttpsError('invalid-argument', 'Text is required');
   }
 
   // Check authentication
-  if (!context.auth?.uid) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   // Check cost limits before making API call
-  await checkCostLimit(context.auth.uid, 'classifyAnnoyance');
+  await checkCostLimit(request.auth.uid, 'classifyAnnoyance');
 
   const startTime = Date.now();
   let tokensIn = 0;
@@ -117,7 +125,7 @@ User transcript: "${text}"
 
 Output: {"category":"...","trigger":"...","safe":true}`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -168,9 +176,9 @@ Output: {"category":"...","trigger":"...","safe":true}`;
     const cost = ((tokensIn * 0.00015) + (tokensOut * 0.0006)) / 1000; // gpt-4o-mini pricing
     const duration = Date.now() - startTime;
 
-    if (context.auth?.uid) {
+    if (request.auth?.uid) {
       await db.collection('llm_cost').add({
-        uid: context.auth.uid,
+        uid: request.auth.uid,
         ts: admin.firestore.FieldValue.serverTimestamp(),
         model: 'gpt-4o-mini',
         tokens_in: tokensIn,
@@ -200,16 +208,16 @@ Output: {"category":"...","trigger":"...","safe":true}`;
  * Input: { uid: string, category: string, trigger: string }
  * Output: { type: string, text: string, days: number }
  */
-exports.generateSuggestion = functions.https.onCall(async (data, context) => {
-  const { uid, category, trigger } = data;
+exports.generateSuggestion = onCall(async (request) => {
+  const { uid, category, trigger } = request.data;
 
   if (!uid || !category || !trigger) {
-    throw new functions.https.HttpsError('invalid-argument', 'uid, category, and trigger are required');
+    throw new HttpsError('invalid-argument', 'uid, category, and trigger are required');
   }
 
   // Check authentication
-  if (!context.auth?.uid) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   // Check cost limits before making API call
@@ -264,7 +272,7 @@ Context: ${contextStr}
 Output JSON:
 { "type": "reframe"|"behavior", "text": "one sentence", "days": 3|5|7 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -347,16 +355,16 @@ Output JSON:
  * Output: { recommendation: string, type: string, explanation: string }
  * Updated to remove fallback errors and expose real failures
  */
-exports.generateCoaching = functions.https.onCall(async (data, context) => {
-  const { uid, timestamp } = data;
+exports.generateCoaching = onCall(async (request) => {
+  const { uid, timestamp } = request.data;
 
   if (!uid) {
-    throw new functions.https.HttpsError('invalid-argument', 'uid is required');
+    throw new HttpsError('invalid-argument', 'uid is required');
   }
 
   // Check authentication
-  if (!context.auth?.uid) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   // Check cost limits before making API call (this is the most expensive call)
@@ -378,7 +386,7 @@ exports.generateCoaching = functions.https.onCall(async (data, context) => {
       .get();
 
     if (annoyancesSnapshot.empty) {
-      throw new functions.https.HttpsError('failed-precondition', 'No annoyances found. Record at least 1 annoyance to get coaching.');
+      throw new HttpsError('failed-precondition', 'No annoyances found. Record at least 1 annoyance to get coaching.');
     }
 
     // Get past coaching (all of them, not just with resonance)
@@ -533,7 +541,7 @@ Respond in JSON:
   "explanation": "Write at least 5-6 full paragraphs (minimum 500 words) of supporting commentary. DIRECTLY REFERENCE MULTIPLE specific triggers from their list throughout the explanation. Show how your generalized recommendation applies to many different situations they're experiencing. Weave in examples from at least 3-5 different annoyances to demonstrate the pattern. Explain the psychology behind this pattern, concrete examples of implementing this mindset shift across their various situations, what they'll notice when they try it, and how this creates lasting change. Write naturally and conversationally - don't use section headers or numbered lists. Just flow from one insight to the next, building a complete understanding."
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -618,7 +626,7 @@ Respond in JSON:
       console.error('[generateCoaching] Content length:', content.length);
       console.error('[generateCoaching] Content start:', content.substring(0, 300));
       console.error('[generateCoaching] Content end:', content.substring(Math.max(0, content.length - 300)));
-      throw new functions.https.HttpsError('internal', `Failed to parse AI response: ${parseError.message}`);
+      throw new HttpsError('internal', `Failed to parse AI response: ${parseError.message}`);
     }
 
     // Validate type
@@ -658,16 +666,16 @@ Respond in JSON:
  * Input: { uid: string }
  * Output: { currentCost: number, limit: number, isSubscribed: boolean, canUseAI: boolean }
  */
-exports.getUserCostStatus = functions.https.onCall(async (data, context) => {
-  const { uid } = data;
+exports.getUserCostStatus = onCall(async (request) => {
+  const { uid } = request.data;
 
   if (!uid) {
-    throw new functions.https.HttpsError('invalid-argument', 'uid is required');
+    throw new HttpsError('invalid-argument', 'uid is required');
   }
 
   // Check authentication
-  if (!context.auth?.uid || context.auth.uid !== uid) {
-    throw new functions.https.HttpsError('permission-denied', 'Unauthorized');
+  if (!request.auth?.uid || request.auth.uid !== uid) {
+    throw new HttpsError('permission-denied', 'Unauthorized');
   }
 
   try {
@@ -685,7 +693,7 @@ exports.getUserCostStatus = functions.https.onCall(async (data, context) => {
     };
   } catch (error) {
     console.error('Error getting user cost status:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to get cost status');
+    throw new HttpsError('internal', 'Failed to get cost status');
   }
 });
 
@@ -697,14 +705,14 @@ exports.getUserCostStatus = functions.https.onCall(async (data, context) => {
  * 
  * Available voices: alloy, echo, fable, onyx, nova, shimmer
  */
-exports.generateTTS = functions.runWith({
+exports.generateTTS = onCall({
   timeoutSeconds: 60,
-  memory: '512MB'
-}).https.onCall(async (data, context) => {
-  const { text, voice = 'nova' } = data;
+  memory: '512MiB'
+}, async (request) => {
+  const { text, voice = 'nova' } = request.data;
 
   if (!text || typeof text !== 'string') {
-    throw new functions.https.HttpsError('invalid-argument', 'Text is required');
+    throw new HttpsError('invalid-argument', 'Text is required');
   }
 
   // Validate voice
@@ -712,12 +720,12 @@ exports.generateTTS = functions.runWith({
   const selectedVoice = validVoices.includes(voice) ? voice : 'nova';
 
   // Check authentication
-  if (!context.auth?.uid) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   // Check cost limits
-  await checkCostLimit(context.auth.uid, 'generateTTS');
+  await checkCostLimit(request.auth.uid, 'generateTTS');
 
   const startTime = Date.now();
 
@@ -725,7 +733,7 @@ exports.generateTTS = functions.runWith({
     console.log(`[generateTTS] Generating audio for ${text.length} chars with voice: ${selectedVoice}`);
     
     // Call OpenAI TTS API with selected voice
-    const response = await openai.audio.speech.create({
+    const response = await getOpenAI().audio.speech.create({
       model: 'tts-1', // Use tts-1 for faster response (tts-1-hd for higher quality)
       voice: selectedVoice,
       input: text,
@@ -745,7 +753,7 @@ exports.generateTTS = functions.runWith({
 
     // Log cost
     await db.collection('llm_cost').add({
-      uid: context.auth.uid,
+      uid: request.auth.uid,
       ts: admin.firestore.FieldValue.serverTimestamp(),
       model: `tts-1-${selectedVoice}`,
       tokens_in: charCount, // Using char count as "tokens"
@@ -767,6 +775,6 @@ exports.generateTTS = functions.runWith({
     };
   } catch (error) {
     console.error('[generateTTS] Error:', error);
-    throw new functions.https.HttpsError('internal', `TTS generation failed: ${error.message}`);
+    throw new HttpsError('internal', `TTS generation failed: ${error.message}`);
   }
 });
